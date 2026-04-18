@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/task2_cpp.dir/task2.cpp.o -o bin/task2_cpp  libcusp_cpp_core.a /lib/x86_64-linux-gnu/libfftw3f.so.3 

@@ -1,0 +1,77 @@
+[
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/bsplines/bsplines.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/bsplines/bsplines.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/bsplines/bsplines.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/common/common.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/common/common.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/common/common.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/common/fftw_helpers.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/common/fftw_helpers.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/common/fftw_helpers.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/convolution/convolution.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/convolution/convolution.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/convolution/convolution.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/demod/demod.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/demod/demod.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/demod/demod.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/estimation/estimation.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/estimation/estimation.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/estimation/estimation.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/filtering/filtering.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/filtering/filtering.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/filtering/filtering.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/peak_finding/peak_finding.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/peak_finding/peak_finding.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/peak_finding/peak_finding.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/radartools/radartools.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/radartools/radartools.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/radartools/radartools.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/spectral_analysis/spectral_analysis.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/spectral_analysis/spectral_analysis.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/spectral_analysis/spectral_analysis.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/utils/utils.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/utils/utils.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/utils/utils.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/waveforms/waveforms.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/waveforms/waveforms.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/waveforms/waveforms.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17 -o CMakeFiles/cusp_cpp_core.dir/wavelets/wavelets.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/wavelets/wavelets.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/wavelets/wavelets.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -std=c++17 -o CMakeFiles/task1_cpp.dir/task1.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/task1.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/task1.cpp"
+},
+{
+  "directory": "/home/zhu/桌面/cuSignal/cuSP_cpp/build",
+  "command": "/usr/bin/c++  -I/home/zhu/桌面/cuSignal/cuSP_cpp -O3 -DNDEBUG -std=c++17 -o CMakeFiles/task2_cpp.dir/task2.cpp.o -c /home/zhu/桌面/cuSignal/cuSP_cpp/task2.cpp",
+  "file": "/home/zhu/桌面/cuSignal/cuSP_cpp/task2.cpp"
+}
+]
