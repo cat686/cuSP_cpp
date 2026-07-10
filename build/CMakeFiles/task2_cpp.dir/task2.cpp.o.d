@@ -218,22 +218,23 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: \
  /usr/include/x86_64-linux-gnu/c++/11/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++io.h \
  /usr/include/c++/11/bits/fstream.tcc /usr/include/c++/11/iostream \
+ /usr/include/c++/11/iterator /usr/include/c++/11/bits/stream_iterator.h \
  /usr/include/c++/11/numeric /usr/include/c++/11/bits/stl_numeric.h \
  /usr/include/c++/11/bit /usr/include/c++/11/pstl/glue_numeric_defs.h \
  /usr/include/c++/11/random /usr/include/c++/11/bits/random.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/opt_random.h \
  /usr/include/c++/11/bits/random.tcc \
- /home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_task2_ops.hpp \
- /home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_common.hpp \
- /home/zhu/桌面/cuSignal/cuSP_cpp/common/common.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_task2_ops.hpp \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_common.hpp \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/common/common.h \
  /usr/include/c++/11/cstddef \
- /home/zhu/桌面/cuSignal/cuSP_cpp/bsplines/bsplines.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/convolution/convolution.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/demod/demod.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/estimation/estimation.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/filtering/filtering.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/peak_finding/peak_finding.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/spectral_analysis/spectral_analysis.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/utils/utils.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/waveforms/waveforms.h \
- /home/zhu/桌面/cuSignal/cuSP_cpp/wavelets/wavelets.h
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/bsplines/bsplines.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/convolution/convolution.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/demod/demod.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/estimation/estimation.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/filtering/filtering.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/peak_finding/peak_finding.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/spectral_analysis/spectral_analysis.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/utils/utils.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/waveforms/waveforms.h \
+ /home/zhu/桌面/cuSignal/cuSP_cpp/include/wavelets/wavelets.h

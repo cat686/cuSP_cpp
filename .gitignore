@@ -1,0 +1,63 @@
+# CMake build directories
+build/
+Build/
+build-*/
+cmake-build-*/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Build system files generated inside build directories
+Makefile
+*.ninja
+*.ninja_deps
+*.ninja_log
+
+# Object files and dependency files
+*.o
+*.obj
+*.lo
+*.slo
+*.d
+
+# Libraries
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.la
+*.lai
+
+# Executables and debug artifacts
+*.exe
+*.out
+*.app
+*.pdb
+*.ilk
+*.dwo
+
+# Generated task outputs
+task1_cpp_outputs/
+task2_cpp_outputs/
+*_cpp_outputs/
+output/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Local editor metadata
+.vscode/
+.idea/

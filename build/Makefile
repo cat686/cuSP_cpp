@@ -155,245 +155,317 @@ task2_cpp/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/task2_cpp.dir/build.make CMakeFiles/task2_cpp.dir/build
 .PHONY : task2_cpp/fast
 
-bsplines/bsplines.o: bsplines/bsplines.cpp.o
-.PHONY : bsplines/bsplines.o
+src/bsplines/bsplines.o: src/bsplines/bsplines.cpp.o
+.PHONY : src/bsplines/bsplines.o
 
 # target to build an object file
-bsplines/bsplines.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/bsplines/bsplines.cpp.o
-.PHONY : bsplines/bsplines.cpp.o
+src/bsplines/bsplines.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/bsplines/bsplines.cpp.o
+.PHONY : src/bsplines/bsplines.cpp.o
 
-bsplines/bsplines.i: bsplines/bsplines.cpp.i
-.PHONY : bsplines/bsplines.i
+src/bsplines/bsplines.i: src/bsplines/bsplines.cpp.i
+.PHONY : src/bsplines/bsplines.i
 
 # target to preprocess a source file
-bsplines/bsplines.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/bsplines/bsplines.cpp.i
-.PHONY : bsplines/bsplines.cpp.i
+src/bsplines/bsplines.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/bsplines/bsplines.cpp.i
+.PHONY : src/bsplines/bsplines.cpp.i
 
-bsplines/bsplines.s: bsplines/bsplines.cpp.s
-.PHONY : bsplines/bsplines.s
+src/bsplines/bsplines.s: src/bsplines/bsplines.cpp.s
+.PHONY : src/bsplines/bsplines.s
 
 # target to generate assembly for a file
-bsplines/bsplines.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/bsplines/bsplines.cpp.s
-.PHONY : bsplines/bsplines.cpp.s
+src/bsplines/bsplines.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/bsplines/bsplines.cpp.s
+.PHONY : src/bsplines/bsplines.cpp.s
 
-common/common.o: common/common.cpp.o
-.PHONY : common/common.o
+src/common/common.o: src/common/common.cpp.o
+.PHONY : src/common/common.o
 
 # target to build an object file
-common/common.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/common.cpp.o
-.PHONY : common/common.cpp.o
+src/common/common.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/common.cpp.o
+.PHONY : src/common/common.cpp.o
 
-common/common.i: common/common.cpp.i
-.PHONY : common/common.i
+src/common/common.i: src/common/common.cpp.i
+.PHONY : src/common/common.i
 
 # target to preprocess a source file
-common/common.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/common.cpp.i
-.PHONY : common/common.cpp.i
+src/common/common.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/common.cpp.i
+.PHONY : src/common/common.cpp.i
 
-common/common.s: common/common.cpp.s
-.PHONY : common/common.s
+src/common/common.s: src/common/common.cpp.s
+.PHONY : src/common/common.s
 
 # target to generate assembly for a file
-common/common.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/common.cpp.s
-.PHONY : common/common.cpp.s
+src/common/common.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/common.cpp.s
+.PHONY : src/common/common.cpp.s
 
-common/fftw_helpers.o: common/fftw_helpers.cpp.o
-.PHONY : common/fftw_helpers.o
+src/common/fftw_helpers.o: src/common/fftw_helpers.cpp.o
+.PHONY : src/common/fftw_helpers.o
 
 # target to build an object file
-common/fftw_helpers.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/fftw_helpers.cpp.o
-.PHONY : common/fftw_helpers.cpp.o
+src/common/fftw_helpers.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/fftw_helpers.cpp.o
+.PHONY : src/common/fftw_helpers.cpp.o
 
-common/fftw_helpers.i: common/fftw_helpers.cpp.i
-.PHONY : common/fftw_helpers.i
+src/common/fftw_helpers.i: src/common/fftw_helpers.cpp.i
+.PHONY : src/common/fftw_helpers.i
 
 # target to preprocess a source file
-common/fftw_helpers.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/fftw_helpers.cpp.i
-.PHONY : common/fftw_helpers.cpp.i
+src/common/fftw_helpers.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/fftw_helpers.cpp.i
+.PHONY : src/common/fftw_helpers.cpp.i
 
-common/fftw_helpers.s: common/fftw_helpers.cpp.s
-.PHONY : common/fftw_helpers.s
+src/common/fftw_helpers.s: src/common/fftw_helpers.cpp.s
+.PHONY : src/common/fftw_helpers.s
 
 # target to generate assembly for a file
-common/fftw_helpers.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/common/fftw_helpers.cpp.s
-.PHONY : common/fftw_helpers.cpp.s
+src/common/fftw_helpers.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/common/fftw_helpers.cpp.s
+.PHONY : src/common/fftw_helpers.cpp.s
 
-convolution/convolution.o: convolution/convolution.cpp.o
-.PHONY : convolution/convolution.o
+src/convolution/convolution.o: src/convolution/convolution.cpp.o
+.PHONY : src/convolution/convolution.o
 
 # target to build an object file
-convolution/convolution.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/convolution/convolution.cpp.o
-.PHONY : convolution/convolution.cpp.o
+src/convolution/convolution.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/convolution/convolution.cpp.o
+.PHONY : src/convolution/convolution.cpp.o
 
-convolution/convolution.i: convolution/convolution.cpp.i
-.PHONY : convolution/convolution.i
+src/convolution/convolution.i: src/convolution/convolution.cpp.i
+.PHONY : src/convolution/convolution.i
 
 # target to preprocess a source file
-convolution/convolution.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/convolution/convolution.cpp.i
-.PHONY : convolution/convolution.cpp.i
+src/convolution/convolution.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/convolution/convolution.cpp.i
+.PHONY : src/convolution/convolution.cpp.i
 
-convolution/convolution.s: convolution/convolution.cpp.s
-.PHONY : convolution/convolution.s
+src/convolution/convolution.s: src/convolution/convolution.cpp.s
+.PHONY : src/convolution/convolution.s
 
 # target to generate assembly for a file
-convolution/convolution.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/convolution/convolution.cpp.s
-.PHONY : convolution/convolution.cpp.s
+src/convolution/convolution.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/convolution/convolution.cpp.s
+.PHONY : src/convolution/convolution.cpp.s
 
-demod/demod.o: demod/demod.cpp.o
-.PHONY : demod/demod.o
+src/demod/demod.o: src/demod/demod.cpp.o
+.PHONY : src/demod/demod.o
 
 # target to build an object file
-demod/demod.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/demod/demod.cpp.o
-.PHONY : demod/demod.cpp.o
+src/demod/demod.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/demod/demod.cpp.o
+.PHONY : src/demod/demod.cpp.o
 
-demod/demod.i: demod/demod.cpp.i
-.PHONY : demod/demod.i
+src/demod/demod.i: src/demod/demod.cpp.i
+.PHONY : src/demod/demod.i
 
 # target to preprocess a source file
-demod/demod.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/demod/demod.cpp.i
-.PHONY : demod/demod.cpp.i
+src/demod/demod.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/demod/demod.cpp.i
+.PHONY : src/demod/demod.cpp.i
 
-demod/demod.s: demod/demod.cpp.s
-.PHONY : demod/demod.s
+src/demod/demod.s: src/demod/demod.cpp.s
+.PHONY : src/demod/demod.s
 
 # target to generate assembly for a file
-demod/demod.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/demod/demod.cpp.s
-.PHONY : demod/demod.cpp.s
+src/demod/demod.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/demod/demod.cpp.s
+.PHONY : src/demod/demod.cpp.s
 
-estimation/estimation.o: estimation/estimation.cpp.o
-.PHONY : estimation/estimation.o
+src/estimation/estimation.o: src/estimation/estimation.cpp.o
+.PHONY : src/estimation/estimation.o
 
 # target to build an object file
-estimation/estimation.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/estimation/estimation.cpp.o
-.PHONY : estimation/estimation.cpp.o
+src/estimation/estimation.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/estimation/estimation.cpp.o
+.PHONY : src/estimation/estimation.cpp.o
 
-estimation/estimation.i: estimation/estimation.cpp.i
-.PHONY : estimation/estimation.i
+src/estimation/estimation.i: src/estimation/estimation.cpp.i
+.PHONY : src/estimation/estimation.i
 
 # target to preprocess a source file
-estimation/estimation.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/estimation/estimation.cpp.i
-.PHONY : estimation/estimation.cpp.i
+src/estimation/estimation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/estimation/estimation.cpp.i
+.PHONY : src/estimation/estimation.cpp.i
 
-estimation/estimation.s: estimation/estimation.cpp.s
-.PHONY : estimation/estimation.s
+src/estimation/estimation.s: src/estimation/estimation.cpp.s
+.PHONY : src/estimation/estimation.s
 
 # target to generate assembly for a file
-estimation/estimation.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/estimation/estimation.cpp.s
-.PHONY : estimation/estimation.cpp.s
+src/estimation/estimation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/estimation/estimation.cpp.s
+.PHONY : src/estimation/estimation.cpp.s
 
-filtering/filtering.o: filtering/filtering.cpp.o
-.PHONY : filtering/filtering.o
+src/filtering/filtering.o: src/filtering/filtering.cpp.o
+.PHONY : src/filtering/filtering.o
 
 # target to build an object file
-filtering/filtering.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/filtering/filtering.cpp.o
-.PHONY : filtering/filtering.cpp.o
+src/filtering/filtering.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/filtering/filtering.cpp.o
+.PHONY : src/filtering/filtering.cpp.o
 
-filtering/filtering.i: filtering/filtering.cpp.i
-.PHONY : filtering/filtering.i
+src/filtering/filtering.i: src/filtering/filtering.cpp.i
+.PHONY : src/filtering/filtering.i
 
 # target to preprocess a source file
-filtering/filtering.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/filtering/filtering.cpp.i
-.PHONY : filtering/filtering.cpp.i
+src/filtering/filtering.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/filtering/filtering.cpp.i
+.PHONY : src/filtering/filtering.cpp.i
 
-filtering/filtering.s: filtering/filtering.cpp.s
-.PHONY : filtering/filtering.s
+src/filtering/filtering.s: src/filtering/filtering.cpp.s
+.PHONY : src/filtering/filtering.s
 
 # target to generate assembly for a file
-filtering/filtering.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/filtering/filtering.cpp.s
-.PHONY : filtering/filtering.cpp.s
+src/filtering/filtering.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/filtering/filtering.cpp.s
+.PHONY : src/filtering/filtering.cpp.s
 
-peak_finding/peak_finding.o: peak_finding/peak_finding.cpp.o
-.PHONY : peak_finding/peak_finding.o
+src/peak_finding/peak_finding.o: src/peak_finding/peak_finding.cpp.o
+.PHONY : src/peak_finding/peak_finding.o
 
 # target to build an object file
-peak_finding/peak_finding.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/peak_finding/peak_finding.cpp.o
-.PHONY : peak_finding/peak_finding.cpp.o
+src/peak_finding/peak_finding.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/peak_finding/peak_finding.cpp.o
+.PHONY : src/peak_finding/peak_finding.cpp.o
 
-peak_finding/peak_finding.i: peak_finding/peak_finding.cpp.i
-.PHONY : peak_finding/peak_finding.i
+src/peak_finding/peak_finding.i: src/peak_finding/peak_finding.cpp.i
+.PHONY : src/peak_finding/peak_finding.i
 
 # target to preprocess a source file
-peak_finding/peak_finding.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/peak_finding/peak_finding.cpp.i
-.PHONY : peak_finding/peak_finding.cpp.i
+src/peak_finding/peak_finding.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/peak_finding/peak_finding.cpp.i
+.PHONY : src/peak_finding/peak_finding.cpp.i
 
-peak_finding/peak_finding.s: peak_finding/peak_finding.cpp.s
-.PHONY : peak_finding/peak_finding.s
+src/peak_finding/peak_finding.s: src/peak_finding/peak_finding.cpp.s
+.PHONY : src/peak_finding/peak_finding.s
 
 # target to generate assembly for a file
-peak_finding/peak_finding.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/peak_finding/peak_finding.cpp.s
-.PHONY : peak_finding/peak_finding.cpp.s
+src/peak_finding/peak_finding.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/peak_finding/peak_finding.cpp.s
+.PHONY : src/peak_finding/peak_finding.cpp.s
 
-radartools/radartools.o: radartools/radartools.cpp.o
-.PHONY : radartools/radartools.o
+src/radartools/radartools.o: src/radartools/radartools.cpp.o
+.PHONY : src/radartools/radartools.o
 
 # target to build an object file
-radartools/radartools.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/radartools/radartools.cpp.o
-.PHONY : radartools/radartools.cpp.o
+src/radartools/radartools.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/radartools/radartools.cpp.o
+.PHONY : src/radartools/radartools.cpp.o
 
-radartools/radartools.i: radartools/radartools.cpp.i
-.PHONY : radartools/radartools.i
+src/radartools/radartools.i: src/radartools/radartools.cpp.i
+.PHONY : src/radartools/radartools.i
 
 # target to preprocess a source file
-radartools/radartools.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/radartools/radartools.cpp.i
-.PHONY : radartools/radartools.cpp.i
+src/radartools/radartools.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/radartools/radartools.cpp.i
+.PHONY : src/radartools/radartools.cpp.i
 
-radartools/radartools.s: radartools/radartools.cpp.s
-.PHONY : radartools/radartools.s
+src/radartools/radartools.s: src/radartools/radartools.cpp.s
+.PHONY : src/radartools/radartools.s
 
 # target to generate assembly for a file
-radartools/radartools.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/radartools/radartools.cpp.s
-.PHONY : radartools/radartools.cpp.s
+src/radartools/radartools.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/radartools/radartools.cpp.s
+.PHONY : src/radartools/radartools.cpp.s
 
-spectral_analysis/spectral_analysis.o: spectral_analysis/spectral_analysis.cpp.o
-.PHONY : spectral_analysis/spectral_analysis.o
+src/spectral_analysis/spectral_analysis.o: src/spectral_analysis/spectral_analysis.cpp.o
+.PHONY : src/spectral_analysis/spectral_analysis.o
 
 # target to build an object file
-spectral_analysis/spectral_analysis.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/spectral_analysis/spectral_analysis.cpp.o
-.PHONY : spectral_analysis/spectral_analysis.cpp.o
+src/spectral_analysis/spectral_analysis.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/spectral_analysis/spectral_analysis.cpp.o
+.PHONY : src/spectral_analysis/spectral_analysis.cpp.o
 
-spectral_analysis/spectral_analysis.i: spectral_analysis/spectral_analysis.cpp.i
-.PHONY : spectral_analysis/spectral_analysis.i
+src/spectral_analysis/spectral_analysis.i: src/spectral_analysis/spectral_analysis.cpp.i
+.PHONY : src/spectral_analysis/spectral_analysis.i
 
 # target to preprocess a source file
-spectral_analysis/spectral_analysis.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/spectral_analysis/spectral_analysis.cpp.i
-.PHONY : spectral_analysis/spectral_analysis.cpp.i
+src/spectral_analysis/spectral_analysis.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/spectral_analysis/spectral_analysis.cpp.i
+.PHONY : src/spectral_analysis/spectral_analysis.cpp.i
 
-spectral_analysis/spectral_analysis.s: spectral_analysis/spectral_analysis.cpp.s
-.PHONY : spectral_analysis/spectral_analysis.s
+src/spectral_analysis/spectral_analysis.s: src/spectral_analysis/spectral_analysis.cpp.s
+.PHONY : src/spectral_analysis/spectral_analysis.s
 
 # target to generate assembly for a file
-spectral_analysis/spectral_analysis.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/spectral_analysis/spectral_analysis.cpp.s
-.PHONY : spectral_analysis/spectral_analysis.cpp.s
+src/spectral_analysis/spectral_analysis.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/spectral_analysis/spectral_analysis.cpp.s
+.PHONY : src/spectral_analysis/spectral_analysis.cpp.s
+
+src/utils/utils.o: src/utils/utils.cpp.o
+.PHONY : src/utils/utils.o
+
+# target to build an object file
+src/utils/utils.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/utils/utils.cpp.o
+.PHONY : src/utils/utils.cpp.o
+
+src/utils/utils.i: src/utils/utils.cpp.i
+.PHONY : src/utils/utils.i
+
+# target to preprocess a source file
+src/utils/utils.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/utils/utils.cpp.i
+.PHONY : src/utils/utils.cpp.i
+
+src/utils/utils.s: src/utils/utils.cpp.s
+.PHONY : src/utils/utils.s
+
+# target to generate assembly for a file
+src/utils/utils.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/utils/utils.cpp.s
+.PHONY : src/utils/utils.cpp.s
+
+src/waveforms/waveforms.o: src/waveforms/waveforms.cpp.o
+.PHONY : src/waveforms/waveforms.o
+
+# target to build an object file
+src/waveforms/waveforms.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/waveforms/waveforms.cpp.o
+.PHONY : src/waveforms/waveforms.cpp.o
+
+src/waveforms/waveforms.i: src/waveforms/waveforms.cpp.i
+.PHONY : src/waveforms/waveforms.i
+
+# target to preprocess a source file
+src/waveforms/waveforms.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/waveforms/waveforms.cpp.i
+.PHONY : src/waveforms/waveforms.cpp.i
+
+src/waveforms/waveforms.s: src/waveforms/waveforms.cpp.s
+.PHONY : src/waveforms/waveforms.s
+
+# target to generate assembly for a file
+src/waveforms/waveforms.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/waveforms/waveforms.cpp.s
+.PHONY : src/waveforms/waveforms.cpp.s
+
+src/wavelets/wavelets.o: src/wavelets/wavelets.cpp.o
+.PHONY : src/wavelets/wavelets.o
+
+# target to build an object file
+src/wavelets/wavelets.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/wavelets/wavelets.cpp.o
+.PHONY : src/wavelets/wavelets.cpp.o
+
+src/wavelets/wavelets.i: src/wavelets/wavelets.cpp.i
+.PHONY : src/wavelets/wavelets.i
+
+# target to preprocess a source file
+src/wavelets/wavelets.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/wavelets/wavelets.cpp.i
+.PHONY : src/wavelets/wavelets.cpp.i
+
+src/wavelets/wavelets.s: src/wavelets/wavelets.cpp.s
+.PHONY : src/wavelets/wavelets.s
+
+# target to generate assembly for a file
+src/wavelets/wavelets.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/src/wavelets/wavelets.cpp.s
+.PHONY : src/wavelets/wavelets.cpp.s
 
 task1.o: task1.cpp.o
 .PHONY : task1.o
@@ -443,78 +515,6 @@ task2.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/task2_cpp.dir/build.make CMakeFiles/task2_cpp.dir/task2.cpp.s
 .PHONY : task2.cpp.s
 
-utils/utils.o: utils/utils.cpp.o
-.PHONY : utils/utils.o
-
-# target to build an object file
-utils/utils.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/utils/utils.cpp.o
-.PHONY : utils/utils.cpp.o
-
-utils/utils.i: utils/utils.cpp.i
-.PHONY : utils/utils.i
-
-# target to preprocess a source file
-utils/utils.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/utils/utils.cpp.i
-.PHONY : utils/utils.cpp.i
-
-utils/utils.s: utils/utils.cpp.s
-.PHONY : utils/utils.s
-
-# target to generate assembly for a file
-utils/utils.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/utils/utils.cpp.s
-.PHONY : utils/utils.cpp.s
-
-waveforms/waveforms.o: waveforms/waveforms.cpp.o
-.PHONY : waveforms/waveforms.o
-
-# target to build an object file
-waveforms/waveforms.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/waveforms/waveforms.cpp.o
-.PHONY : waveforms/waveforms.cpp.o
-
-waveforms/waveforms.i: waveforms/waveforms.cpp.i
-.PHONY : waveforms/waveforms.i
-
-# target to preprocess a source file
-waveforms/waveforms.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/waveforms/waveforms.cpp.i
-.PHONY : waveforms/waveforms.cpp.i
-
-waveforms/waveforms.s: waveforms/waveforms.cpp.s
-.PHONY : waveforms/waveforms.s
-
-# target to generate assembly for a file
-waveforms/waveforms.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/waveforms/waveforms.cpp.s
-.PHONY : waveforms/waveforms.cpp.s
-
-wavelets/wavelets.o: wavelets/wavelets.cpp.o
-.PHONY : wavelets/wavelets.o
-
-# target to build an object file
-wavelets/wavelets.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/wavelets/wavelets.cpp.o
-.PHONY : wavelets/wavelets.cpp.o
-
-wavelets/wavelets.i: wavelets/wavelets.cpp.i
-.PHONY : wavelets/wavelets.i
-
-# target to preprocess a source file
-wavelets/wavelets.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/wavelets/wavelets.cpp.i
-.PHONY : wavelets/wavelets.cpp.i
-
-wavelets/wavelets.s: wavelets/wavelets.cpp.s
-.PHONY : wavelets/wavelets.s
-
-# target to generate assembly for a file
-wavelets/wavelets.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cusp_cpp_core.dir/build.make CMakeFiles/cusp_cpp_core.dir/wavelets/wavelets.cpp.s
-.PHONY : wavelets/wavelets.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -526,51 +526,51 @@ help:
 	@echo "... cusp_cpp_core"
 	@echo "... task1_cpp"
 	@echo "... task2_cpp"
-	@echo "... bsplines/bsplines.o"
-	@echo "... bsplines/bsplines.i"
-	@echo "... bsplines/bsplines.s"
-	@echo "... common/common.o"
-	@echo "... common/common.i"
-	@echo "... common/common.s"
-	@echo "... common/fftw_helpers.o"
-	@echo "... common/fftw_helpers.i"
-	@echo "... common/fftw_helpers.s"
-	@echo "... convolution/convolution.o"
-	@echo "... convolution/convolution.i"
-	@echo "... convolution/convolution.s"
-	@echo "... demod/demod.o"
-	@echo "... demod/demod.i"
-	@echo "... demod/demod.s"
-	@echo "... estimation/estimation.o"
-	@echo "... estimation/estimation.i"
-	@echo "... estimation/estimation.s"
-	@echo "... filtering/filtering.o"
-	@echo "... filtering/filtering.i"
-	@echo "... filtering/filtering.s"
-	@echo "... peak_finding/peak_finding.o"
-	@echo "... peak_finding/peak_finding.i"
-	@echo "... peak_finding/peak_finding.s"
-	@echo "... radartools/radartools.o"
-	@echo "... radartools/radartools.i"
-	@echo "... radartools/radartools.s"
-	@echo "... spectral_analysis/spectral_analysis.o"
-	@echo "... spectral_analysis/spectral_analysis.i"
-	@echo "... spectral_analysis/spectral_analysis.s"
+	@echo "... src/bsplines/bsplines.o"
+	@echo "... src/bsplines/bsplines.i"
+	@echo "... src/bsplines/bsplines.s"
+	@echo "... src/common/common.o"
+	@echo "... src/common/common.i"
+	@echo "... src/common/common.s"
+	@echo "... src/common/fftw_helpers.o"
+	@echo "... src/common/fftw_helpers.i"
+	@echo "... src/common/fftw_helpers.s"
+	@echo "... src/convolution/convolution.o"
+	@echo "... src/convolution/convolution.i"
+	@echo "... src/convolution/convolution.s"
+	@echo "... src/demod/demod.o"
+	@echo "... src/demod/demod.i"
+	@echo "... src/demod/demod.s"
+	@echo "... src/estimation/estimation.o"
+	@echo "... src/estimation/estimation.i"
+	@echo "... src/estimation/estimation.s"
+	@echo "... src/filtering/filtering.o"
+	@echo "... src/filtering/filtering.i"
+	@echo "... src/filtering/filtering.s"
+	@echo "... src/peak_finding/peak_finding.o"
+	@echo "... src/peak_finding/peak_finding.i"
+	@echo "... src/peak_finding/peak_finding.s"
+	@echo "... src/radartools/radartools.o"
+	@echo "... src/radartools/radartools.i"
+	@echo "... src/radartools/radartools.s"
+	@echo "... src/spectral_analysis/spectral_analysis.o"
+	@echo "... src/spectral_analysis/spectral_analysis.i"
+	@echo "... src/spectral_analysis/spectral_analysis.s"
+	@echo "... src/utils/utils.o"
+	@echo "... src/utils/utils.i"
+	@echo "... src/utils/utils.s"
+	@echo "... src/waveforms/waveforms.o"
+	@echo "... src/waveforms/waveforms.i"
+	@echo "... src/waveforms/waveforms.s"
+	@echo "... src/wavelets/wavelets.o"
+	@echo "... src/wavelets/wavelets.i"
+	@echo "... src/wavelets/wavelets.s"
 	@echo "... task1.o"
 	@echo "... task1.i"
 	@echo "... task1.s"
 	@echo "... task2.o"
 	@echo "... task2.i"
 	@echo "... task2.s"
-	@echo "... utils/utils.o"
-	@echo "... utils/utils.i"
-	@echo "... utils/utils.s"
-	@echo "... waveforms/waveforms.o"
-	@echo "... waveforms/waveforms.i"
-	@echo "... waveforms/waveforms.s"
-	@echo "... wavelets/wavelets.o"
-	@echo "... wavelets/wavelets.i"
-	@echo "... wavelets/wavelets.s"
 .PHONY : help
 
 

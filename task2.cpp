@@ -17,12 +17,15 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -30,7 +33,7 @@
 
 namespace task2_cpu {
 
-using Complex = std::complex<double>;
+using Complex = std::complex<float>;
 
 template <typename T>
 struct Matrix {
@@ -67,41 +70,41 @@ struct ParamMeta {
 
 struct Params {
     // ---------- 仿真与采样环境 ----------
-    double fs = 10e6;
-    double duration = 2.0e-3;
+    float fs = 10e6;
+    float duration = 2.0e-3;
     std::uint32_t seed = 2026;
 
     // ---------- 目标信号：LFM ----------
-    double lfm_f0 = 0.20e6;
-    double lfm_f1 = 0.60e6;
-    double lfm_start = 0.70e-3;
-    double lfm_duration = 0.80e-3;
-    double lfm_amp = 1.00;
+    float lfm_f0 = 0.20e6;
+    float lfm_f1 = 0.60e6;
+    float lfm_start = 0.70e-3;
+    float lfm_duration = 0.80e-3;
+    float lfm_amp = 1.00;
 
     // ---------- 目标信号：Gaussian Pulse ----------
-    double gp_fc = 0.30e6;
-    double gp_bw = 0.35;
-    double gp_early_center_s = 0.22e-3;
-    double gp_offset_from_lfm_start_s = 0.0;
-    double gp_amp = 0.80;
+    float gp_fc = 0.30e6;
+    float gp_bw = 0.35;
+    float gp_early_center_s = 0.22e-3;
+    float gp_offset_from_lfm_start_s = 0.0;
+    float gp_amp = 0.80;
 
     // ---------- 回波 ----------
-    double echo_delay_s = 0.15e-3;
-    double echo_freq_offset_hz = 20e3;
-    double echo_atten = 0.90;
+    float echo_delay_s = 0.15e-3;
+    float echo_freq_offset_hz = 20e3;
+    float echo_atten = 0.90;
 
     // ---------- 干扰与噪声 ----------
-    double interf_square_freq = 50e3;
-    double interf_square_duty = 0.50;
-    double interf_square_amp = 0.30;
-    double dc_offset = 0.20;
-    double snr_db = 5.0;
+    float interf_square_freq = 50e3;
+    float interf_square_duty = 0.50;
+    float interf_square_amp = 0.30;
+    float dc_offset = 0.20;
+    float snr_db = 5.0;
 
     // ---------- 预处理 ----------
     std::string detrend_type = "constant";
     int fir_numtaps = 129;
-    double fir_band_low_hz = 0.15e6;
-    double fir_band_high_hz = 0.70e6;
+    float fir_band_low_hz = 0.15e6;
+    float fir_band_high_hz = 0.70e6;
     std::string fir_window = "hamming";
     std::string filtfilt_padtype = "odd";
 
@@ -114,7 +117,7 @@ struct Params {
     std::string csd_window = "hann";
     int csd_nperseg = 512;
     int csd_noverlap = 256;
-    double cwt_w = 6.0;
+    float cwt_w = 6.0;
     int cwt_width_min = 4;
     int cwt_width_max = 48;
 
@@ -122,26 +125,28 @@ struct Params {
     int mod_peak_order = 12;
     int time_peak_order = 20;
     int freq_peak_order = 6;
-    double min_period_s = 8e-6;
+    float min_period_s = 8e-6;
     int freq_peak_topk = 5;
 
     // ---------- Kalman 估计 ----------
-    double kalman_dt = 1.0;
-    double kalman_process_var = 5e-4;
-    double kalman_meas_var = 5e-3;
+    float kalman_dt = 1.0;
+    float kalman_process_var = 5e-4;
+    float kalman_meas_var = 5e-3;
 
     // ---------- 活动区检测与可视化 ----------
-    double activity_threshold_ratio = 0.20;
-    double activity_min_duration_s = 0.20e-3;
+    float activity_threshold_ratio = 0.20;
+    float activity_min_duration_s = 0.20e-3;
 };
 
 struct RuntimeOptions {
+    bool save_output = false;
     bool enable_visualization = true;
     bool headless = false;
     std::string plot_python;
+    std::string data_level = "L2";
 };
 
-const std::vector<ParamMeta> PARAM_TABLE = {
+std::vector<ParamMeta> PARAM_TABLE = {
     {"fs", "10000000.0", "Hz", "采样率，必须覆盖目标与干扰的最高频率成分", true, "过低会直接导致混叠，并破坏后续所有域的特征估计"},
     {"duration", "0.002", "s", "总观测时长，需要完整覆盖高斯脉冲、LFM 段和周期干扰", false, ""},
     {"seed", "2026", "-", "随机种子，用于保证噪声与仿真可复现", false, ""},
@@ -190,53 +195,224 @@ const std::vector<ParamMeta> PARAM_TABLE = {
     {"activity_min_duration_s", "0.0002", "s", "活动区最短持续时间约束，避免只截到单个振荡峰", true, "过小会把局部峰误判为活动区，过大会把相邻成分连在一起"},
 };
 
-const Params params{};
+Params params{};
+
+void set_param_repr(const std::string& name, const std::string& value) {
+    for (auto& meta : PARAM_TABLE) {
+        if (meta.name == name) {
+            meta.value_repr = value;
+            return;
+        }
+    }
+}
+
+void apply_data_level(const std::string& level) {
+    params = Params{};
+    if (level == "L1") {
+        params.fs = 5e6;
+        params.duration = 1.0e-3;
+        params.lfm_start = 0.35e-3;
+        params.lfm_duration = 0.40e-3;
+        params.gp_early_center_s = 0.11e-3;
+        params.echo_delay_s = 0.075e-3;
+        params.csd_nperseg = 256;
+        params.csd_noverlap = 128;
+        params.cwt_width_max = 32;
+        params.activity_min_duration_s = 0.10e-3;
+    } else if (level == "L2") {
+        // Default medium dataset.
+    } else if (level == "L3") {
+        params.fs = 20e6;
+        params.duration = 4.0e-3;
+        params.lfm_start = 1.40e-3;
+        params.lfm_duration = 1.60e-3;
+        params.gp_early_center_s = 0.44e-3;
+        params.echo_delay_s = 0.30e-3;
+        params.csd_nperseg = 1024;
+        params.csd_noverlap = 512;
+        params.cwt_width_max = 64;
+        params.activity_min_duration_s = 0.40e-3;
+    } else {
+        throw std::invalid_argument("Unsupported data level: " + level);
+    }
+
+    set_param_repr("fs", std::to_string(params.fs));
+    set_param_repr("duration", std::to_string(params.duration));
+    set_param_repr("lfm_start", std::to_string(params.lfm_start));
+    set_param_repr("lfm_duration", std::to_string(params.lfm_duration));
+    set_param_repr("gp_early_center_s", std::to_string(params.gp_early_center_s));
+    set_param_repr("echo_delay_s", std::to_string(params.echo_delay_s));
+    set_param_repr("csd_nperseg", std::to_string(params.csd_nperseg));
+    set_param_repr("csd_noverlap", std::to_string(params.csd_noverlap));
+    set_param_repr("cwt_width_max", std::to_string(params.cwt_width_max));
+    set_param_repr("activity_min_duration_s", std::to_string(params.activity_min_duration_s));
+}
+
+struct TimingRecord {
+    std::string stream_name = "main-serial";
+    std::string name;
+    std::string category = "kernel";
+    float cpu_ms = 0.0;
+    float gpu_ms = 0.0;
+};
+
+template <typename Fn>
+auto time_cpu_op(const std::string& name,
+                 const std::string& category,
+                 std::vector<TimingRecord>& timings,
+                 Fn&& fn) {
+    using Ret = std::invoke_result_t<Fn&>;
+    const auto start = std::chrono::steady_clock::now();
+
+    if constexpr (std::is_void_v<Ret>) {
+        fn();
+        const auto stop = std::chrono::steady_clock::now();
+        timings.push_back(TimingRecord{
+            "main-serial",
+            name,
+            category,
+            std::chrono::duration<float, std::milli>(stop - start).count(),
+            0.0,
+        });
+    } else {
+        Ret ret = fn();
+        const auto stop = std::chrono::steady_clock::now();
+        timings.push_back(TimingRecord{
+            "main-serial",
+            name,
+            category,
+            std::chrono::duration<float, std::milli>(stop - start).count(),
+            0.0,
+        });
+        return ret;
+    }
+}
+
+bool is_operator_timing_record(const TimingRecord& timing) {
+    return timing.category == "h2d" ||
+           timing.category == "kernel" ||
+           timing.category == "d2h";
+}
+
+struct TimingTotals {
+    float gpu_operator_ms = 0.0f;
+    float cpu_operator_ms = 0.0f;
+    float total_operator_ms = 0.0f;
+};
+
+struct StreamTimingTotals {
+    std::string stream_name;
+    float kernel_gpu_ms = 0.0f;
+    float kernel_total_ms = 0.0f;
+    float transfer_ms = 0.0f;
+    float total_ms = 0.0f;
+};
+
+float kernel_total_ms(const TimingRecord& timing) {
+    return timing.gpu_ms > 0.0f ? timing.gpu_ms : timing.cpu_ms;
+}
+
+TimingTotals compute_timing_totals(const std::vector<TimingRecord>& timings) {
+    std::vector<StreamTimingTotals> stream_totals;
+
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+
+        auto it = std::find_if(stream_totals.begin(), stream_totals.end(), [&](const auto& entry) {
+            return entry.stream_name == t.stream_name;
+        });
+        if (it == stream_totals.end()) {
+            stream_totals.push_back(StreamTimingTotals{t.stream_name});
+            it = std::prev(stream_totals.end());
+        }
+
+        if (t.category == "kernel") {
+            it->kernel_gpu_ms += t.gpu_ms;
+            it->kernel_total_ms += kernel_total_ms(t);
+            it->total_ms += kernel_total_ms(t);
+        } else {
+            it->transfer_ms += t.cpu_ms;
+            it->total_ms += t.cpu_ms;
+        }
+    }
+
+    TimingTotals totals;
+    for (const auto& entry : stream_totals) {
+        totals.gpu_operator_ms = std::max(totals.gpu_operator_ms, entry.kernel_gpu_ms);
+        totals.cpu_operator_ms = std::max(totals.cpu_operator_ms, entry.transfer_ms);
+        totals.total_operator_ms = std::max(totals.total_operator_ms, entry.total_ms);
+    }
+    return totals;
+}
+
+void print_timing_summary(const std::vector<TimingRecord>& timings) {
+    std::cout << "========== 绠楀瓙璁℃椂 ==========\n";
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+        std::cout << std::fixed << std::setprecision(3)
+                  << "[" << t.stream_name << "] "
+                  << "[" << t.category << "] "
+                  << t.name
+                  << ": cpu=" << t.cpu_ms << " ms"
+                  << ", cudaEvent=" << t.gpu_ms << " ms\n";
+    }
+    std::cout << "---------- Timing totals ----------\n";
+    const TimingTotals totals = compute_timing_totals(timings);
+    std::cout << "GPU operator time: " << totals.gpu_operator_ms << " ms\n"
+              << "Cpu operator time: " << totals.cpu_operator_ms << " ms\n"
+              << "Total operator time: " << totals.total_operator_ms << " ms\n";
+    std::cout << '\n';
+}
 
 struct TruthSummary {
-    double lfm_start_s = std::numeric_limits<double>::quiet_NaN();
-    double lfm_end_s = std::numeric_limits<double>::quiet_NaN();
-    double lfm_f0_hz = std::numeric_limits<double>::quiet_NaN();
-    double lfm_f1_hz = std::numeric_limits<double>::quiet_NaN();
-    double lfm_bw_hz = std::numeric_limits<double>::quiet_NaN();
-    double lfm_slope_hz_per_s = std::numeric_limits<double>::quiet_NaN();
-    double gp_early_center_s = std::numeric_limits<double>::quiet_NaN();
-    double gp_lfm_center_s = std::numeric_limits<double>::quiet_NaN();
-    double interference_period_s = std::numeric_limits<double>::quiet_NaN();
+    float lfm_start_s = std::numeric_limits<float>::quiet_NaN();
+    float lfm_end_s = std::numeric_limits<float>::quiet_NaN();
+    float lfm_f0_hz = std::numeric_limits<float>::quiet_NaN();
+    float lfm_f1_hz = std::numeric_limits<float>::quiet_NaN();
+    float lfm_bw_hz = std::numeric_limits<float>::quiet_NaN();
+    float lfm_slope_hz_per_s = std::numeric_limits<float>::quiet_NaN();
+    float gp_early_center_s = std::numeric_limits<float>::quiet_NaN();
+    float gp_lfm_center_s = std::numeric_limits<float>::quiet_NaN();
+    float interference_period_s = std::numeric_limits<float>::quiet_NaN();
 };
 
 struct Results {
     // 原始/预处理链路
-    std::vector<double> t;
+    std::vector<float> t;
     std::vector<Complex> target_clean;
     std::vector<Complex> echo_complex;
-    std::vector<double> rx_noiseless;
-    std::vector<double> rx;
-    std::vector<double> rx_detrended;
-    std::vector<double> rx_denoised;
-    std::vector<double> rx_smooth;
-    std::vector<double> activity_envelope;
+    std::vector<float> rx_noiseless;
+    std::vector<float> rx;
+    std::vector<float> rx_detrended;
+    std::vector<float> rx_denoised;
+    std::vector<float> rx_smooth;
+    std::vector<float> activity_envelope;
 
     // 调制域
     std::vector<Complex> analytic;
-    std::vector<double> t_inst;
-    std::vector<double> inst_freq;
-    std::vector<double> inst_freq_kf;
+    std::vector<float> t_inst;
+    std::vector<float> inst_freq;
+    std::vector<float> inst_freq_kf;
 
     // 时域
-    std::vector<double> lags_pos;
-    std::vector<double> autocorr_pos;
+    std::vector<float> lags_pos;
+    std::vector<float> autocorr_pos;
 
     // 频域
-    std::vector<double> freqs_pos;
-    std::vector<double> psd_pos;
+    std::vector<float> freqs_pos;
+    std::vector<float> psd_pos;
 
     // 时频域
     std::vector<int> widths;
-    std::vector<double> pseudo_freqs;
+    std::vector<float> pseudo_freqs;
     Matrix<float> cwt_power;
-    std::vector<double> ridge_freq;
-    std::vector<double> ridge_energy;
-    std::vector<double> ridge_freq_kf;
+    std::vector<float> ridge_freq;
+    std::vector<float> ridge_energy;
+    std::vector<float> ridge_freq_kf;
 
     // 峰值
     std::vector<int> mod_peaks;
@@ -249,22 +425,22 @@ struct Results {
     int activity_inst_start_idx = 0;
     int activity_inst_end_idx = 0;
 
-    double est_start_s = std::numeric_limits<double>::quiet_NaN();
-    double est_end_s = std::numeric_limits<double>::quiet_NaN();
-    double est_main_freq_hz = std::numeric_limits<double>::quiet_NaN();
-    double est_period_s = std::numeric_limits<double>::quiet_NaN();
-    double est_center_freq_hz = std::numeric_limits<double>::quiet_NaN();
-    double est_bandwidth_hz = std::numeric_limits<double>::quiet_NaN();
-    double mod_slope_hz_per_s = std::numeric_limits<double>::quiet_NaN();
-    double mod_intercept_hz = std::numeric_limits<double>::quiet_NaN();
-    double ridge_slope_hz_per_s = std::numeric_limits<double>::quiet_NaN();
-    double ridge_intercept_hz = std::numeric_limits<double>::quiet_NaN();
+    float est_start_s = std::numeric_limits<float>::quiet_NaN();
+    float est_end_s = std::numeric_limits<float>::quiet_NaN();
+    float est_main_freq_hz = std::numeric_limits<float>::quiet_NaN();
+    float est_period_s = std::numeric_limits<float>::quiet_NaN();
+    float est_center_freq_hz = std::numeric_limits<float>::quiet_NaN();
+    float est_bandwidth_hz = std::numeric_limits<float>::quiet_NaN();
+    float mod_slope_hz_per_s = std::numeric_limits<float>::quiet_NaN();
+    float mod_intercept_hz = std::numeric_limits<float>::quiet_NaN();
+    float ridge_slope_hz_per_s = std::numeric_limits<float>::quiet_NaN();
+    float ridge_intercept_hz = std::numeric_limits<float>::quiet_NaN();
 
     std::string modulation_label = "Unknown";
     TruthSummary truth;
 };
 
-double db10(double x, double eps) {
+float db10(float x, float eps) {
     return cuSP::task2_ops::db10(x, eps);
 }
 
@@ -272,19 +448,19 @@ int ensure_odd(int n) {
     return cuSP::task2_ops::ensure_odd(n);
 }
 
-std::vector<double> build_time_axis(double fs, double duration) {
+std::vector<float> build_time_axis(float fs, float duration) {
     return cuSP::task2_ops::build_time_axis(fs, duration);
 }
 
-std::vector<Complex> apply_integer_delay(const std::vector<Complex>& x, double fs, double delay_s) {
+std::vector<Complex> apply_integer_delay(const std::vector<Complex>& x, float fs, float delay_s) {
     return cuSP::task2_ops::apply_integer_delay(x, fs, delay_s);
 }
 
-std::vector<double> add_awgn(const std::vector<double>& x, double snr_db, std::uint32_t seed) {
+std::vector<float> add_awgn(const std::vector<float>& x, float snr_db, std::uint32_t seed) {
     return cuSP::task2_ops::add_awgn(x, snr_db, seed);
 }
 
-std::pair<double, double> linear_fit(const std::vector<double>& x, const std::vector<double>& y) {
+std::pair<float, float> linear_fit(const std::vector<float>& x, const std::vector<float>& y) {
     return cuSP::task2_ops::linear_fit(x, y);
 }
 
@@ -312,14 +488,34 @@ void print_parameter_summary() {
 
 std::filesystem::path default_output_dir() {
     const std::filesystem::path cwd = std::filesystem::current_path();
-    const std::filesystem::path repo_style = cwd / "cusignal_task";
-    if (std::filesystem::exists(repo_style) && std::filesystem::is_directory(repo_style)) {
-        return repo_style / "task2_cpp_outputs";
+    if (std::filesystem::exists(cwd / "cuSP_cpp" / "CMakeLists.txt")) {
+        return cwd / "cuSP_cpp" / "task2_cpp_outputs";
     }
-    if (cwd.filename() == "cusignal_task") {
+    if (std::filesystem::exists(cwd / "CMakeLists.txt") &&
+        std::filesystem::exists(cwd / "include" / "cuSP_task2_ops.hpp")) {
         return cwd / "task2_cpp_outputs";
     }
     return cwd / "task2_cpp_outputs";
+}
+
+std::filesystem::path make_transient_output_dir(const std::string& prefix, const std::string& data_level) {
+    const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+    return std::filesystem::temp_directory_path() /
+           (prefix + "_" + data_level + "_" + std::to_string(stamp));
+}
+
+std::filesystem::path resolve_runtime_output_dir(const RuntimeOptions& runtime, const std::string& prefix) {
+    if (runtime.save_output) {
+        return default_output_dir() / runtime.data_level;
+    }
+    return make_transient_output_dir(prefix, runtime.data_level);
+}
+
+void cleanup_runtime_output_dir(const RuntimeOptions& runtime, const std::filesystem::path& out_dir) {
+    if (!runtime.save_output) {
+        std::error_code ec;
+        std::filesystem::remove_all(out_dir, ec);
+    }
 }
 
 void ensure_directory(const std::filesystem::path& dir) {
@@ -339,7 +535,7 @@ std::string shell_quote(const std::string& input) {
     return quoted;
 }
 
-std::string format_double_arg(double value) {
+std::string format_float_arg(float value) {
     std::ostringstream oss;
     oss << std::setprecision(17) << value;
     return oss.str();
@@ -348,8 +544,8 @@ std::string format_double_arg(double value) {
 void save_series_csv(const std::filesystem::path& path,
                      const std::string& x_label,
                      const std::string& y_label,
-                     const std::vector<double>& xs,
-                     const std::vector<double>& ys) {
+                     const std::vector<float>& xs,
+                     const std::vector<float>& ys) {
     if (xs.size() != ys.size()) {
         throw std::invalid_argument("save_series_csv requires matching x/y lengths");
     }
@@ -370,11 +566,11 @@ void save_index_csv(const std::filesystem::path& path, const std::string& label,
     }
 }
 
-void save_vector_csv(const std::filesystem::path& path, const std::string& label, const std::vector<double>& values) {
+void save_vector_csv(const std::filesystem::path& path, const std::string& label, const std::vector<float>& values) {
     std::ofstream ofs(path);
     ofs << std::setprecision(10);
     ofs << label << "\n";
-    for (double value : values) {
+    for (float value : values) {
         ofs << value << "\n";
     }
 }
@@ -383,6 +579,109 @@ void save_raw_matrix_f32(const std::filesystem::path& path, const Matrix<float>&
     std::ofstream ofs(path, std::ios::binary);
     ofs.write(reinterpret_cast<const char*>(matrix.data.data()),
               static_cast<std::streamsize>(matrix.data.size() * sizeof(float)));
+}
+
+void save_raw_meta(const std::filesystem::path& path,
+                   const std::string& dtype,
+                   const std::vector<std::size_t>& shape) {
+    std::ofstream ofs(path.string() + ".meta");
+    ofs << "dtype=" << dtype << "\n";
+    ofs << "shape=";
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        if (i != 0) {
+            ofs << ",";
+        }
+        ofs << shape[i];
+    }
+    ofs << "\n";
+}
+
+template <typename T>
+void save_raw_vector(const std::filesystem::path& path,
+                     const std::vector<T>& values,
+                     const std::string& dtype,
+                     const std::vector<std::size_t>& shape) {
+    std::ofstream ofs(path, std::ios::binary);
+    if (!values.empty()) {
+        ofs.write(reinterpret_cast<const char*>(values.data()),
+                  static_cast<std::streamsize>(values.size() * sizeof(T)));
+    }
+    save_raw_meta(path, dtype, shape);
+}
+
+std::vector<float> to_float_vector(const std::vector<float>& values) {
+    return std::vector<float>(values.begin(), values.end());
+}
+
+std::vector<std::complex<float>> to_complex64_vector(const std::vector<Complex>& values) {
+    std::vector<std::complex<float>> out;
+    out.reserve(values.size());
+    for (const auto& value : values) {
+        out.emplace_back(static_cast<float>(value.real()), static_cast<float>(value.imag()));
+    }
+    return out;
+}
+
+void save_vector_f32_data(const std::filesystem::path& dir,
+                          const std::string& name,
+                          const std::vector<float>& values) {
+    save_raw_vector(dir / (name + ".bin"), to_float_vector(values), "float32", {values.size()});
+}
+
+void save_vector_i32_data(const std::filesystem::path& dir,
+                          const std::string& name,
+                          const std::vector<int>& values) {
+    std::vector<int32_t> i32(values.begin(), values.end());
+    save_raw_vector(dir / (name + ".bin"), i32, "int32", {values.size()});
+}
+
+void save_vector_complex64_data(const std::filesystem::path& dir,
+                                const std::string& name,
+                                const std::vector<Complex>& values) {
+    save_raw_vector(dir / (name + ".bin"), to_complex64_vector(values), "complex64", {values.size()});
+}
+
+void save_matrix_f32_data(const std::filesystem::path& dir,
+                          const std::string& name,
+                          const Matrix<float>& matrix) {
+    const auto path = dir / (name + ".bin");
+    save_raw_matrix_f32(path, matrix);
+    save_raw_meta(path, "float32", {matrix.rows, matrix.cols});
+}
+
+void save_timing_csv(const std::filesystem::path& out_dir,
+                     const std::vector<TimingRecord>& timings,
+                     const TimingTotals& totals) {
+    ensure_directory(out_dir);
+    std::ofstream ofs(out_dir / "timing.csv");
+    ofs << "task,implementation,component,stream,category,cpu_ms,gpu_ms,composition_ms,notes\n";
+    ofs << std::setprecision(10);
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+        const float composition_ms = (t.category == "kernel") ? kernel_total_ms(t) : t.cpu_ms;
+        ofs << "task2,cpp," << t.name << ','
+            << t.stream_name << ','
+            << t.category << ','
+            << t.cpu_ms << ','
+            << t.gpu_ms << ','
+            << composition_ms << ",\n";
+    }
+    ofs << "task2,cpp,total_gpu_operator,main-serial,kernel,0,"
+        << totals.gpu_operator_ms << ','
+        << totals.gpu_operator_ms
+        << ",max stream sum(kernel cudaEvent)\n";
+    ofs << "task2,cpp,total_cpu_operator,main-serial,h2d+d2h,"
+        << totals.cpu_operator_ms
+        << ",0,"
+        << totals.cpu_operator_ms
+        << ",max stream sum(h2d+d2h cpu_ms)\n";
+    ofs << "task2,cpp,total_operator,main-serial,h2d+kernel+d2h,"
+        << totals.total_operator_ms << ','
+        << totals.gpu_operator_ms << ','
+        << totals.total_operator_ms
+        << ",CPU-only kernel uses cpu_ms in composition_ms\n";
 }
 
 std::string resolve_plot_python(const RuntimeOptions& runtime) {
@@ -424,41 +723,76 @@ std::string resolve_plot_python(const RuntimeOptions& runtime) {
 // =========================
 // 3. 建模模块
 // =========================
-std::vector<Complex> generate_lfm_component(const std::vector<double>& t) {
+std::vector<Complex> generate_lfm_component(const std::vector<float>& t) {
     return cuSP::task2_ops::generate_lfm_component(t, params);
 }
 
-std::vector<Complex> generate_gaussian_component(const std::vector<double>& t) {
+std::vector<Complex> generate_gaussian_component(const std::vector<float>& t) {
     return cuSP::task2_ops::generate_gaussian_component(t, params);
 }
 
-std::vector<double> generate_square_interference(const std::vector<double>& t) {
+std::vector<float> generate_square_interference(const std::vector<float>& t) {
     return cuSP::task2_ops::generate_square_interference(t, params);
 }
 
 void synthesize_received_signal(
-    const std::vector<double>& t,
+    const std::vector<float>& t,
     std::vector<Complex>& target_clean,
     std::vector<Complex>& echo_complex,
-    std::vector<double>& rx_noiseless,
-    std::vector<double>& rx) {
-    cuSP::task2_ops::synthesize_received_signal(t, params, target_clean, echo_complex, rx_noiseless, rx);
+    std::vector<float>& rx_noiseless,
+    std::vector<float>& rx) {
+    const std::vector<Complex> lfm = generate_lfm_component(t);
+    const std::vector<Complex> gp = generate_gaussian_component(t);
+    const std::vector<float> square = generate_square_interference(t);
+
+    target_clean.assign(t.size(), Complex{});
+    for (std::size_t i = 0; i < t.size(); ++i) {
+        target_clean[i] = lfm[i] + gp[i];
+    }
+
+    const std::vector<Complex> delayed = apply_integer_delay(target_clean, params.fs, params.echo_delay_s);
+    echo_complex.assign(t.size(), Complex{});
+    rx_noiseless.assign(t.size(), 0.0);
+    for (std::size_t i = 0; i < t.size(); ++i) {
+        const float phase = 2.0 * cuSP::common::kPi * params.echo_freq_offset_hz * t[i];
+        const Complex freq_shift(std::cos(phase), std::sin(phase));
+        echo_complex[i] = params.echo_atten * delayed[i] * freq_shift;
+        rx_noiseless[i] = echo_complex[i].real() + square[i] + params.dc_offset;
+    }
+
+    float signal_power = 0.0;
+    for (float value : rx_noiseless) {
+        signal_power += value * value;
+    }
+    signal_power /= static_cast<float>(std::max<std::size_t>(1, rx_noiseless.size()));
+
+    const float snr_linear = std::pow(10.0, params.snr_db / 10.0);
+    const float noise_power = signal_power / snr_linear;
+    const float noise_sigma = std::sqrt(noise_power);
+
+    std::mt19937 rng(params.seed);
+    std::normal_distribution<float> normal(0.0f, 1.0f);
+
+    rx.resize(rx_noiseless.size());
+    for (std::size_t i = 0; i < rx_noiseless.size(); ++i) {
+        rx[i] = rx_noiseless[i] + static_cast<float>(noise_sigma) * normal(rng);
+    }
 }
 
 void preprocess_signal(
-    const std::vector<double>& rx,
-    std::vector<double>& detrended,
-    std::vector<double>& filtered) {
+    const std::vector<float>& rx,
+    std::vector<float>& detrended,
+    std::vector<float>& filtered) {
     cuSP::task2_ops::preprocess_signal(rx, params, detrended, filtered);
 }
 
-std::vector<double> smooth_with_cubic_bspline(const std::vector<double>& x) {
+std::vector<float> smooth_with_cubic_bspline(const std::vector<float>& x) {
     return cuSP::task2_ops::smooth_with_cubic_bspline(x, params);
 }
 
 void estimate_activity_interval(
-    const std::vector<double>& x_smooth,
-    std::vector<double>& envelope_smooth,
+    const std::vector<float>& x_smooth,
+    std::vector<float>& envelope_smooth,
     std::vector<std::uint8_t>& activity_mask,
     int& start_idx,
     int& end_idx) {
@@ -471,14 +805,14 @@ void estimate_activity_interval(
 // =========================
 namespace {
 
-std::vector<double> slice_vector(const std::vector<double>& x, int start, int end) {
+std::vector<float> slice_vector(const std::vector<float>& x, int start, int end) {
     const int n = static_cast<int>(x.size());
     const int s = std::clamp(start, 0, n);
     const int e = std::clamp(end, s, n);
-    return std::vector<double>(x.begin() + s, x.begin() + e);
+    return std::vector<float>(x.begin() + s, x.begin() + e);
 }
 
-std::vector<int> argsort_descending(const std::vector<double>& x) {
+std::vector<int> argsort_descending(const std::vector<float>& x) {
     std::vector<int> idx(x.size(), 0);
     for (std::size_t i = 0; i < x.size(); ++i) {
         idx[i] = static_cast<int>(i);
@@ -487,20 +821,20 @@ std::vector<int> argsort_descending(const std::vector<double>& x) {
     return idx;
 }
 
-std::vector<double> diff_vector(const std::vector<double>& x) {
+std::vector<float> diff_vector(const std::vector<float>& x) {
     if (x.size() <= 1) {
         return {};
     }
 
-    std::vector<double> y(x.size() - 1, 0.0);
+    std::vector<float> y(x.size() - 1, 0.0);
     for (std::size_t i = 0; i + 1 < x.size(); ++i) {
         y[i] = x[i + 1] - x[i];
     }
     return y;
 }
 
-std::vector<double> abs_vector(const std::vector<double>& x) {
-    std::vector<double> y(x.size(), 0.0);
+std::vector<float> abs_vector(const std::vector<float>& x) {
+    std::vector<float> y(x.size(), 0.0);
     for (std::size_t i = 0; i < x.size(); ++i) {
         y[i] = std::abs(x[i]);
     }
@@ -510,35 +844,35 @@ std::vector<double> abs_vector(const std::vector<double>& x) {
 }  // namespace
 
 void extract_modulation_domain(
-    const std::vector<double>& x_smooth,
-    const std::vector<double>& t,
+    const std::vector<float>& x_smooth,
+    const std::vector<float>& t,
     std::vector<Complex>& analytic,
-    std::vector<double>& t_inst,
-    std::vector<double>& inst_freq) {
+    std::vector<float>& t_inst,
+    std::vector<float>& inst_freq) {
     cuSP::task2_ops::extract_modulation_domain(x_smooth, t, params, analytic, t_inst, inst_freq);
 }
 
 void extract_time_domain(
-    const std::vector<double>& x_smooth,
-    std::vector<double>& lags_pos,
-    std::vector<double>& autocorr_pos) {
+    const std::vector<float>& x_smooth,
+    std::vector<float>& lags_pos,
+    std::vector<float>& autocorr_pos) {
     cuSP::task2_ops::extract_time_domain(x_smooth, params, lags_pos, autocorr_pos);
 }
 
 void extract_frequency_domain(
-    const std::vector<double>& x_smooth,
-    std::vector<double>& freqs_pos,
-    std::vector<double>& psd_pos) {
+    const std::vector<float>& x_smooth,
+    std::vector<float>& freqs_pos,
+    std::vector<float>& psd_pos) {
     cuSP::task2_ops::extract_frequency_domain(x_smooth, params, freqs_pos, psd_pos);
 }
 
 void extract_time_frequency_domain(
-    const std::vector<double>& x_smooth,
+    const std::vector<float>& x_smooth,
     std::vector<int>& widths,
-    std::vector<double>& pseudo_freqs,
+    std::vector<float>& pseudo_freqs,
     Matrix<float>& cwt_power,
-    std::vector<double>& ridge_freq,
-    std::vector<double>& ridge_energy) {
+    std::vector<float>& ridge_freq,
+    std::vector<float>& ridge_energy) {
     cuSP::task2_ops::extract_time_frequency_domain<Matrix>(
         x_smooth, params, widths, pseudo_freqs, cwt_power, ridge_freq, ridge_energy);
 }
@@ -546,18 +880,18 @@ void extract_time_frequency_domain(
 // =========================
 // 6. 峰值检测模块
 // =========================
-std::vector<int> detect_peaks_1d(const std::vector<double>& x, int order, double threshold_ratio) {
+std::vector<int> detect_peaks_1d(const std::vector<float>& x, int order, float threshold_ratio) {
     return cuSP::task2_ops::detect_peaks_1d(x, order, threshold_ratio);
 }
 
-std::vector<int> fallback_global_peak(const std::vector<double>& x) {
+std::vector<int> fallback_global_peak(const std::vector<float>& x) {
     return cuSP::task2_ops::fallback_global_peak(x);
 }
 
 // =========================
 // 7. Kalman 估计模块
 // =========================
-std::vector<double> kalman_smooth_1d(const std::vector<double>& measurements) {
+std::vector<float> kalman_smooth_1d(const std::vector<float>& measurements) {
     return cuSP::task2_ops::kalman_smooth_1d(measurements, params);
 }
 
@@ -582,8 +916,8 @@ void add_text_box_placeholder() {}
 
 namespace {
 
-std::vector<double> real_part_vector(const std::vector<Complex>& x) {
-    std::vector<double> out(x.size(), 0.0);
+std::vector<float> real_part_vector(const std::vector<Complex>& x) {
+    std::vector<float> out(x.size(), 0.0);
     for (std::size_t i = 0; i < x.size(); ++i) {
         out[i] = x[i].real();
     }
@@ -608,6 +942,40 @@ void save_plot_metadata(const std::filesystem::path& path, const Results& result
     ofs << "ridge_slope_hz_per_s=" << results.ridge_slope_hz_per_s << "\n";
     ofs << "ridge_intercept_hz=" << results.ridge_intercept_hz << "\n";
     ofs << "modulation_label=" << results.modulation_label << "\n";
+}
+
+void save_intermediate_data(const Results& results, const std::string& data_level) {
+    const auto data_dir = default_output_dir() / data_level / "data";
+    ensure_directory(data_dir);
+
+    save_vector_f32_data(data_dir, "t", results.t);
+    save_vector_complex64_data(data_dir, "target_clean", results.target_clean);
+    save_vector_complex64_data(data_dir, "echo_complex", results.echo_complex);
+    save_vector_f32_data(data_dir, "rx_noiseless", results.rx_noiseless);
+    save_vector_f32_data(data_dir, "rx", results.rx);
+    save_vector_f32_data(data_dir, "rx_detrended", results.rx_detrended);
+    save_vector_f32_data(data_dir, "rx_denoised", results.rx_denoised);
+    save_vector_f32_data(data_dir, "rx_smooth", results.rx_smooth);
+    save_vector_f32_data(data_dir, "activity_envelope", results.activity_envelope);
+    save_vector_f32_data(data_dir, "t_inst", results.t_inst);
+    save_vector_f32_data(data_dir, "inst_freq", results.inst_freq);
+    save_vector_f32_data(data_dir, "inst_freq_kf", results.inst_freq_kf);
+    save_vector_f32_data(data_dir, "lags_pos", results.lags_pos);
+    save_vector_f32_data(data_dir, "autocorr_pos", results.autocorr_pos);
+    save_vector_f32_data(data_dir, "freqs_pos", results.freqs_pos);
+    save_vector_f32_data(data_dir, "psd_pos", results.psd_pos);
+    save_vector_i32_data(data_dir, "widths", results.widths);
+    save_vector_f32_data(data_dir, "pseudo_freqs", results.pseudo_freqs);
+    save_matrix_f32_data(data_dir, "cwt_power", results.cwt_power);
+    save_vector_f32_data(data_dir, "ridge_freq", results.ridge_freq);
+    save_vector_f32_data(data_dir, "ridge_energy", results.ridge_energy);
+    save_vector_f32_data(data_dir, "ridge_freq_kf", results.ridge_freq_kf);
+    save_vector_i32_data(data_dir, "mod_peaks", results.mod_peaks);
+    save_vector_i32_data(data_dir, "time_peaks", results.time_peaks);
+    save_vector_i32_data(data_dir, "freq_peaks", results.freq_peaks);
+    save_plot_metadata(data_dir / "metadata.txt", results);
+
+    std::cout << "Intermediate data saved to: " << data_dir.string() << "\n";
 }
 
 void launch_matplotlib_visualization(const RuntimeOptions& runtime, const std::filesystem::path& out_dir) {
@@ -981,12 +1349,12 @@ void visualize_results(const Results& results, const RuntimeOptions& runtime) {
         return;
     }
 
-    const auto out_dir = default_output_dir();
+    const auto out_dir = resolve_runtime_output_dir(runtime, "task2_cpp_plot");
     ensure_directory(out_dir);
 
-    const std::vector<double> target_real = real_part_vector(results.target_clean);
-    const std::vector<double> t_active = slice_vector(results.t, results.activity_start_idx, results.activity_end_idx);
-    const std::vector<double> t_inst_active =
+    const std::vector<float> target_real = real_part_vector(results.target_clean);
+    const std::vector<float> t_active = slice_vector(results.t, results.activity_start_idx, results.activity_end_idx);
+    const std::vector<float> t_inst_active =
         slice_vector(results.t_inst, results.activity_inst_start_idx, results.activity_inst_end_idx);
 
     save_series_csv(out_dir / "target_clean_real.csv", "t_s", "target_real", results.t, target_real);
@@ -1006,14 +1374,22 @@ void visualize_results(const Results& results, const RuntimeOptions& runtime) {
     save_raw_matrix_f32(out_dir / "cwt_power.bin", results.cwt_power);
     save_plot_metadata(out_dir / "plot_metadata.txt", results);
 
-    launch_matplotlib_visualization(runtime, out_dir);
+    try {
+        launch_matplotlib_visualization(runtime, out_dir);
+    } catch (...) {
+        cleanup_runtime_output_dir(runtime, out_dir);
+        throw;
+    }
+    cleanup_runtime_output_dir(runtime, out_dir);
 }
 
 RuntimeOptions parse_runtime_options(int argc, char** argv) {
     RuntimeOptions runtime;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
-        if (arg == "--no-viz") {
+        if (arg == "--save-output" || arg == "--output") {
+            runtime.save_output = true;
+        } else if (arg == "--no-viz") {
             runtime.enable_visualization = false;
         } else if (arg == "--headless") {
             runtime.headless = true;
@@ -1022,8 +1398,16 @@ RuntimeOptions parse_runtime_options(int argc, char** argv) {
                 throw std::invalid_argument("--plot-python requires a following path");
             }
             runtime.plot_python = argv[++i];
+        } else if (arg == "--level") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--level requires L1, L2, or L3");
+            }
+            runtime.data_level = argv[++i];
+            if (runtime.data_level != "L1" && runtime.data_level != "L2" && runtime.data_level != "L3") {
+                throw std::invalid_argument("--level must be L1, L2, or L3");
+            }
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: task2 [--no-viz] [--headless] [--plot-python <path>]\n";
+            std::cout << "Usage: task2_cpp [--level L1|L2|L3] [--save-output] [--no-viz] [--headless] [--plot-python <path>]\n";
             std::exit(0);
         } else {
             throw std::invalid_argument("Unknown argument: " + arg);
@@ -1041,88 +1425,119 @@ using namespace task2_cpu;
 // =========================
 int main(int argc, char** argv) {
     const RuntimeOptions runtime = parse_runtime_options(argc, argv);
-    const auto t0 = std::chrono::steady_clock::now();
+    apply_data_level(runtime.data_level);
+    std::vector<TimingRecord> timings;
+    std::cout << "Data level = " << runtime.data_level << '\n';
     print_parameter_summary();
 
     // ---- 1) 建模 ----
-    const std::vector<double> t = build_time_axis(params.fs, params.duration);
+    const std::vector<float> t = time_cpu_op("ufunc::arange(time)+divide(time/fs)", "kernel", timings, [&]() {
+        return build_time_axis(params.fs, params.duration);
+    });
     std::vector<Complex> target_clean;
     std::vector<Complex> echo_complex;
-    std::vector<double> rx_noiseless;
-    std::vector<double> rx;
-    synthesize_received_signal(t, target_clean, echo_complex, rx_noiseless, rx);
+    std::vector<float> rx_noiseless;
+    std::vector<float> rx;
+    time_cpu_op("kernel::synthesize_rx", "kernel", timings, [&]() {
+        synthesize_received_signal(t, target_clean, echo_complex, rx_noiseless, rx);
+    });
 
     // ---- 2) 预处理：detrend + firwin bandpass + filtfilt ----
-    std::vector<double> rx_detrended;
-    std::vector<double> rx_denoised;
-    preprocess_signal(rx, rx_detrended, rx_denoised);
+    std::vector<float> rx_detrended;
+    std::vector<float> rx_denoised;
+    time_cpu_op("filtering::detrend+firwin+filtfilt", "kernel", timings, [&]() {
+        preprocess_signal(rx, rx_detrended, rx_denoised);
+    });
 
     // ---- 3) 样条平滑 ----
-    const std::vector<double> rx_smooth = smooth_with_cubic_bspline(rx_denoised);
+    const std::vector<float> rx_smooth = time_cpu_op("bsplines::cubic+convolution::convolve(rx_smooth)", "kernel", timings, [&]() {
+        return smooth_with_cubic_bspline(rx_denoised);
+    });
 
     // ---- 4) 从平滑结果中估计主活动区 ----
-    std::vector<double> activity_envelope;
+    std::vector<float> activity_envelope;
     std::vector<std::uint8_t> activity_mask;
     int activity_start_idx = 0;
     int activity_end_idx = 0;
-    estimate_activity_interval(rx_smooth, activity_envelope, activity_mask, activity_start_idx, activity_end_idx);
-    const double est_start_s = t.empty() ? std::numeric_limits<double>::quiet_NaN() : t[static_cast<std::size_t>(activity_start_idx)];
-    const double est_end_s = t.empty()
-                                 ? std::numeric_limits<double>::quiet_NaN()
+    time_cpu_op("filtering::hilbert(activity)+activity_interval", "kernel", timings, [&]() {
+        estimate_activity_interval(rx_smooth, activity_envelope, activity_mask, activity_start_idx, activity_end_idx);
+    });
+    const float est_start_s = t.empty() ? std::numeric_limits<float>::quiet_NaN() : t[static_cast<std::size_t>(activity_start_idx)];
+    const float est_end_s = t.empty()
+                                 ? std::numeric_limits<float>::quiet_NaN()
                                  : t[static_cast<std::size_t>(std::max(activity_start_idx, activity_end_idx - 1))];
 
     // ---- 5) 四域特征提取 ----
     std::vector<Complex> analytic;
-    std::vector<double> t_inst;
-    std::vector<double> inst_freq;
-    extract_modulation_domain(rx_smooth, t, analytic, t_inst, inst_freq);
+    std::vector<float> t_inst;
+    std::vector<float> inst_freq;
+    time_cpu_op("demod::fm_demod(modulation)", "kernel", timings, [&]() {
+        extract_modulation_domain(rx_smooth, t, analytic, t_inst, inst_freq);
+    });
 
-    std::vector<double> lags_pos;
-    std::vector<double> autocorr_pos;
-    extract_time_domain(rx_smooth, lags_pos, autocorr_pos);
+    std::vector<float> lags_pos;
+    std::vector<float> autocorr_pos;
+    time_cpu_op("convolution::correlate(time_domain)", "kernel", timings, [&]() {
+        extract_time_domain(rx_smooth, lags_pos, autocorr_pos);
+    });
 
-    std::vector<double> freqs_pos;
-    std::vector<double> psd_pos;
-    extract_frequency_domain(rx_smooth, freqs_pos, psd_pos);
+    std::vector<float> freqs_pos;
+    std::vector<float> psd_pos;
+    time_cpu_op("spectral_analysis::csd(frequency_domain)", "kernel", timings, [&]() {
+        extract_frequency_domain(rx_smooth, freqs_pos, psd_pos);
+    });
 
     std::vector<int> widths;
-    std::vector<double> pseudo_freqs;
+    std::vector<float> pseudo_freqs;
     Matrix<float> cwt_power;
-    std::vector<double> ridge_freq;
-    std::vector<double> ridge_energy;
-    extract_time_frequency_domain(rx_smooth, widths, pseudo_freqs, cwt_power, ridge_freq, ridge_energy);
+    std::vector<float> ridge_freq;
+    std::vector<float> ridge_energy;
+    time_cpu_op("wavelets::cwt(morlet2)", "kernel", timings, [&]() {
+        extract_time_frequency_domain(rx_smooth, widths, pseudo_freqs, cwt_power, ridge_freq, ridge_energy);
+    });
 
     // ---- 6) 峰值检测 ----
-    std::vector<int> mod_peaks = detect_peaks_1d(abs_vector(inst_freq), params.mod_peak_order, 0.35);
-    if (mod_peaks.empty()) {
-        mod_peaks = fallback_global_peak(abs_vector(inst_freq));
-    }
-
-    std::vector<int> time_peaks = detect_peaks_1d(autocorr_pos, params.time_peak_order, 0.20);
-    if (!time_peaks.empty()) {
-        std::vector<int> filtered;
-        for (int idx : time_peaks) {
-            if (lags_pos[static_cast<std::size_t>(idx)] >= params.min_period_s) {
-                filtered.push_back(idx);
-            }
+    std::vector<int> mod_peaks;
+    time_cpu_op("peak_finding::argrelmax(mod_peaks)", "kernel", timings, [&]() {
+        mod_peaks = detect_peaks_1d(abs_vector(inst_freq), params.mod_peak_order, 0.35);
+        if (mod_peaks.empty()) {
+            mod_peaks = fallback_global_peak(abs_vector(inst_freq));
         }
-        time_peaks = std::move(filtered);
-    }
+    });
 
-    std::vector<int> freq_peaks = detect_peaks_1d(psd_pos, params.freq_peak_order, 0.15);
-    if (freq_peaks.empty()) {
-        freq_peaks = fallback_global_peak(psd_pos);
-    }
+    std::vector<int> time_peaks;
+    time_cpu_op("peak_finding::argrelmax(time_peaks)", "kernel", timings, [&]() {
+        time_peaks = detect_peaks_1d(autocorr_pos, params.time_peak_order, 0.20);
+        if (!time_peaks.empty()) {
+            std::vector<int> filtered;
+            for (int idx : time_peaks) {
+                if (lags_pos[static_cast<std::size_t>(idx)] >= params.min_period_s) {
+                    filtered.push_back(idx);
+                }
+            }
+            time_peaks = std::move(filtered);
+        }
+    });
+
+    std::vector<int> freq_peaks;
+    time_cpu_op("peak_finding::argrelmax(freq_peaks)", "kernel", timings, [&]() {
+        freq_peaks = detect_peaks_1d(psd_pos, params.freq_peak_order, 0.15);
+        if (freq_peaks.empty()) {
+            freq_peaks = fallback_global_peak(psd_pos);
+        }
+    });
 
     // ---- 7) Kalman 估计 ----
     const int activity_inst_start_idx = std::max(0, activity_start_idx - 1);
     const int activity_inst_end_idx = std::min(static_cast<int>(inst_freq.size()), std::max(0, activity_end_idx - 1));
-    const std::vector<double> inst_freq_active = slice_vector(inst_freq, activity_inst_start_idx, activity_inst_end_idx);
-    const std::vector<double> t_inst_active = slice_vector(t_inst, activity_inst_start_idx, activity_inst_end_idx);
-    const std::vector<double> inst_freq_kf = kalman_smooth_1d(inst_freq_active);
+    const std::vector<float> inst_freq_active = slice_vector(inst_freq, activity_inst_start_idx, activity_inst_end_idx);
+    const std::vector<float> t_inst_active = slice_vector(t_inst, activity_inst_start_idx, activity_inst_end_idx);
+    const std::vector<float> inst_freq_kf = time_cpu_op("estimation::KalmanFilter(modulation)", "kernel", timings, [&]() {
+        return kalman_smooth_1d(inst_freq_active);
+    });
 
-    double mod_slope = std::numeric_limits<double>::quiet_NaN();
-    double mod_intercept = std::numeric_limits<double>::quiet_NaN();
+    float mod_slope = std::numeric_limits<float>::quiet_NaN();
+    float mod_intercept = std::numeric_limits<float>::quiet_NaN();
     std::string modulation_label = "Unknown";
     if (inst_freq_kf.size() > 1) {
         const auto fit = linear_fit(t_inst_active, inst_freq_kf);
@@ -1131,9 +1546,9 @@ int main(int argc, char** argv) {
         modulation_label = (std::abs(mod_slope) > 1e6) ? "LFM-like" : "Non-LFM-like";
     }
 
-    std::vector<double> period_candidates;
+    std::vector<float> period_candidates;
     if (time_peaks.size() >= 2) {
-        std::vector<double> lag_candidates;
+        std::vector<float> lag_candidates;
         lag_candidates.reserve(time_peaks.size());
         for (int idx : time_peaks) {
             lag_candidates.push_back(lags_pos[static_cast<std::size_t>(idx)]);
@@ -1143,16 +1558,18 @@ int main(int argc, char** argv) {
         period_candidates = {lags_pos[static_cast<std::size_t>(time_peaks[0])]};
     }
 
-    const std::vector<double> period_kf = kalman_smooth_1d(period_candidates);
-    const double est_period_s = period_kf.empty() ? std::numeric_limits<double>::quiet_NaN() : period_kf.back();
+    const std::vector<float> period_kf = time_cpu_op("estimation::KalmanFilter(period)", "kernel", timings, [&]() {
+        return kalman_smooth_1d(period_candidates);
+    });
+    const float est_period_s = period_kf.empty() ? std::numeric_limits<float>::quiet_NaN() : period_kf.back();
 
-    std::vector<double> peak_power;
+    std::vector<float> peak_power;
     peak_power.reserve(freq_peaks.size());
     for (int idx : freq_peaks) {
         peak_power.push_back(psd_pos[static_cast<std::size_t>(idx)]);
     }
     const std::vector<int> sort_idx = argsort_descending(peak_power);
-    std::vector<double> freq_candidates;
+    std::vector<float> freq_candidates;
     for (int order_idx : sort_idx) {
         if (static_cast<int>(freq_candidates.size()) >= params.freq_peak_topk) {
             break;
@@ -1160,17 +1577,21 @@ int main(int argc, char** argv) {
         const int peak_idx = freq_peaks[static_cast<std::size_t>(order_idx)];
         freq_candidates.push_back(freqs_pos[static_cast<std::size_t>(peak_idx)]);
     }
-    const std::vector<double> freq_kf = kalman_smooth_1d(freq_candidates);
-    const double est_main_freq_hz = freq_kf.empty() ? std::numeric_limits<double>::quiet_NaN() : freq_kf.back();
+    const std::vector<float> freq_kf = time_cpu_op("estimation::KalmanFilter(frequency)", "kernel", timings, [&]() {
+        return kalman_smooth_1d(freq_candidates);
+    });
+    const float est_main_freq_hz = freq_kf.empty() ? std::numeric_limits<float>::quiet_NaN() : freq_kf.back();
 
-    const std::vector<double> ridge_active = slice_vector(ridge_freq, activity_start_idx, activity_end_idx);
-    const std::vector<double> t_active = slice_vector(t, activity_start_idx, activity_end_idx);
-    const std::vector<double> ridge_freq_kf = kalman_smooth_1d(ridge_active);
+    const std::vector<float> ridge_active = slice_vector(ridge_freq, activity_start_idx, activity_end_idx);
+    const std::vector<float> t_active = slice_vector(t, activity_start_idx, activity_end_idx);
+    const std::vector<float> ridge_freq_kf = time_cpu_op("estimation::KalmanFilter(ridge)", "kernel", timings, [&]() {
+        return kalman_smooth_1d(ridge_active);
+    });
 
-    double ridge_slope = std::numeric_limits<double>::quiet_NaN();
-    double ridge_intercept = std::numeric_limits<double>::quiet_NaN();
-    double est_bandwidth_hz = std::numeric_limits<double>::quiet_NaN();
-    double est_center_freq_hz = std::numeric_limits<double>::quiet_NaN();
+    float ridge_slope = std::numeric_limits<float>::quiet_NaN();
+    float ridge_intercept = std::numeric_limits<float>::quiet_NaN();
+    float est_bandwidth_hz = std::numeric_limits<float>::quiet_NaN();
+    float est_center_freq_hz = std::numeric_limits<float>::quiet_NaN();
     if (ridge_freq_kf.size() > 1) {
         const auto fit = linear_fit(t_active, ridge_freq_kf);
         ridge_slope = fit.first;
@@ -1181,7 +1602,6 @@ int main(int argc, char** argv) {
     }
 
     const TruthSummary truth = build_truth_summary();
-    const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
     // ---- 8) 控制台输出 ----
     std::cout << "========== 理论真值 ==========\n";
@@ -1228,7 +1648,11 @@ int main(int argc, char** argv) {
         std::cout << "调制域瞬时频率斜率估计 = NaN\n";
     }
     std::cout << "\n";
-    std::cout << std::fixed << std::setprecision(6) << "Processing time before visualization: " << elapsed << " s\n\n";
+
+    if (!runtime.save_output && !runtime.enable_visualization) {
+        print_timing_summary(timings);
+        return 0;
+    }
 
     Results results;
     results.t = t;
@@ -1273,6 +1697,16 @@ int main(int argc, char** argv) {
     results.ridge_intercept_hz = ridge_intercept;
     results.modulation_label = modulation_label;
     results.truth = truth;
+
+    if (runtime.save_output) {
+        time_cpu_op("save_intermediate_data", "host", timings, [&]() {
+            save_intermediate_data(results, runtime.data_level);
+        });
+    }
+    print_timing_summary(timings);
+    if (runtime.save_output) {
+        save_timing_csv(default_output_dir() / runtime.data_level, timings, compute_timing_totals(timings));
+    }
 
     // ---- 9) 可视化与结果输出 ----
     visualize_results(results, runtime);

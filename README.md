@@ -41,10 +41,17 @@
 
 ## 目录说明
 
-- `common/`：基础数据结构与通用数学工具
-- `radartools/`：`task1` 相关核心处理
-- `waveforms/`、`filtering/`、`demod/`、`spectral_analysis/`、`wavelets/` 等：`task2` 使用的功能模块
-- `cuSP_task1_ops.hpp`、`cuSP_task2_ops.hpp`：任务入口和公共模块之间的适配层
+- `include/`：公共头文件，按模块划分，结构与 `cuSP` 的 `include/` 类似
+- `src/`：各模块实现文件，和 `include/` 中的模块一一对应
+- `task1.cpp`、`task2.cpp`：两个示例任务入口
+- `task1_cpp_outputs/`：任务 1 的导出结果与绘图辅助脚本
+
+其中：
+
+- `include/common/`：基础数据结构与通用数学工具
+- `include/radartools/`：`task1` 相关核心处理
+- `include/waveforms/`、`include/filtering/`、`include/demod/`、`include/spectral_analysis/`、`include/wavelets/` 等：`task2` 使用的功能模块
+- `include/cuSP_task1_ops.hpp`、`include/cuSP_task2_ops.hpp`：任务入口和公共模块之间的适配层
 
 ## 构建
 
@@ -59,3 +66,6 @@ cmake --build cuSP_cpp/build --parallel
 cuSP_cpp/build/bin/task1_cpp
 cuSP_cpp/build/bin/task2_cpp
 ```
+输出中间结果命令：
+./cuSP_cpp/build/bin/task1_cpp --level L1 --save-output --no-viz
+./cuSP_cpp/build/bin/task2_cpp --level L1 --save-output --no-viz

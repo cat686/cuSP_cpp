@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/zhu/桌面/cuSignal/cuSP_cpp
+CXX_INCLUDES = -I/home/zhu/桌面/cuSignal/cuSP_cpp/include
 
 CXX_FLAGS = -O3 -DNDEBUG -Wall -Wextra -Wpedantic -std=c++17
 

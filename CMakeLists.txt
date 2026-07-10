@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+set(CUSP_CPP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(CUSP_CPP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
 option(CUSP_CPP_BUILD_TASK1 "Build the task1_cpp executable" ON)
 option(CUSP_CPP_BUILD_TASK2 "Build the task2_cpp executable" ON)
 
@@ -45,26 +48,26 @@ endif()
 message(STATUS "Using FFTW3f library: ${CUSP_CPP_FFTW3F_LIBRARY}")
 
 set(CUSP_CPP_CORE_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/bsplines/bsplines.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/common/common.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/common/fftw_helpers.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/convolution/convolution.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/demod/demod.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/estimation/estimation.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/filtering/filtering.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/peak_finding/peak_finding.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/radartools/radartools.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/spectral_analysis/spectral_analysis.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/waveforms/waveforms.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/wavelets/wavelets.cpp
+    ${CUSP_CPP_SOURCE_DIR}/bsplines/bsplines.cpp
+    ${CUSP_CPP_SOURCE_DIR}/common/common.cpp
+    ${CUSP_CPP_SOURCE_DIR}/common/fftw_helpers.cpp
+    ${CUSP_CPP_SOURCE_DIR}/convolution/convolution.cpp
+    ${CUSP_CPP_SOURCE_DIR}/demod/demod.cpp
+    ${CUSP_CPP_SOURCE_DIR}/estimation/estimation.cpp
+    ${CUSP_CPP_SOURCE_DIR}/filtering/filtering.cpp
+    ${CUSP_CPP_SOURCE_DIR}/peak_finding/peak_finding.cpp
+    ${CUSP_CPP_SOURCE_DIR}/radartools/radartools.cpp
+    ${CUSP_CPP_SOURCE_DIR}/spectral_analysis/spectral_analysis.cpp
+    ${CUSP_CPP_SOURCE_DIR}/utils/utils.cpp
+    ${CUSP_CPP_SOURCE_DIR}/waveforms/waveforms.cpp
+    ${CUSP_CPP_SOURCE_DIR}/wavelets/wavelets.cpp
 )
 
 add_library(cusp_cpp_core STATIC ${CUSP_CPP_CORE_SOURCES})
 
 target_include_directories(cusp_cpp_core
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CUSP_CPP_INCLUDE_DIR}
 )
 
 target_link_libraries(cusp_cpp_core

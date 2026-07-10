@@ -1,6 +1,6 @@
 // task1.cpp
 //
-// CPU-only C++ translation of cusignal_task/task1.py.
+// CPU-only C++ translation of task1.cu.
 //
 // Pipeline:
 // 1) LFM waveform design
@@ -14,12 +14,9 @@
 //
 // Notes:
 // - Pure CPU implementation, no GPU / CUDA / CuPy / cuSignal usage.
-// - The file keeps the same high-level structure and processing order as task1.py.
+// - The file keeps the same high-level structure and processing order as task1.cu.
 // - Plotting is replaced with CSV / image export so the file stays self-contained.
 //
-// Build example:
-//   g++ -O2 -std=c++17 cusignal_task/task1.cpp -o cusignal_task/task1_cpp
-
 #include <algorithm>
 #include <chrono>
 #include <cctype>
@@ -31,11 +28,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <numeric>
 #include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -43,10 +43,10 @@
 
 namespace {
 
-constexpr double kLightSpeed = 3.0e8;
-constexpr double kPi = 3.141592653589793238462643383279502884;
+constexpr float kLightSpeed = 3.0e8;
+constexpr float kPi = 3.141592653589793238462643383279502884;
 
-using Complex = std::complex<double>;
+using Complex = std::complex<float>;
 
 template <typename T>
 struct Matrix {
@@ -69,20 +69,20 @@ struct Matrix {
 };
 
 struct Target {
-    double R = 0.0;
-    double v = 0.0;
-    double amp = 0.0;
+    float R = 0.0;
+    float v = 0.0;
+    float amp = 0.0;
 };
 
 // =========================
 // 1. Parameter config
 // =========================
 struct Params {
-    double fc = 70e9;
-    double B = 200e6;
-    double Tp = 10e-6;
-    double PRI = 50e-6;
-    double fs = 500e6;
+    float fc = 70e9;
+    float B = 200e6;
+    float Tp = 10e-6;
+    float PRI = 50e-6;
+    float fs = 500e6;
     std::size_t num_pulses = 128;
 
     std::vector<Target> targets = {
@@ -90,34 +90,58 @@ struct Params {
         {300.0, 2.0, 0.8},
     };
 
-    double snr_db = 10.0;
+    float snr_db = 10.0;
 
     std::string pc_window = "hamming";
     bool pc_normalize = true;
 
     std::string doppler_window = "hann";
 
-    std::pair<int, int> guard_cells = {2, 2};
-    std::pair<int, int> reference_cells = {16, 8};
-    double pfa = 1e-4;
+    std::pair<int, int> guard_cells = {3, 3};
+    std::pair<int, int> reference_cells = {16, 16};
+    float pfa = 1e-4;
 
     std::size_t top_k = 2;
 };
 
+Params params_for_level(const std::string& level) {
+    Params params;
+    if (level == "L1") {
+        params.Tp = 5e-6;
+        params.num_pulses = 64;
+    } else if (level == "L2") {
+        // Default medium dataset.
+    } else if (level == "L3") {
+        params.Tp = 15e-6;
+        params.num_pulses = 192;
+    } else {
+        throw std::invalid_argument("Unsupported data level: " + level);
+    }
+    return params;
+}
+
 struct RuntimeOptions {
+    bool save_output = false;
     bool enable_visualization = true;
-    bool compute_ambiguity = true;
-    bool smoke_test = false;
     bool headless = false;
     std::string plot_python;
+    std::string data_level = "L2";
+};
+
+struct TimingRecord {
+    std::string stream_name = "main-serial";
+    std::string name;
+    std::string category = "kernel";
+    float cpu_ms = 0.0;
+    float gpu_ms = 0.0;
 };
 
 struct Detection {
     int doppler_bin = 0;
     int range_bin = 0;
-    double range_m = 0.0;
-    double velocity_mps = 0.0;
-    double power = 0.0;
+    float range_m = 0.0;
+    float velocity_mps = 0.0;
+    float power = 0.0;
 };
 
 struct AmbiguityImage {
@@ -130,14 +154,126 @@ std::size_t ceil_div(std::size_t a, std::size_t b) {
     return (a + b - 1) / b;
 }
 
+template <typename Fn>
+auto time_cpu_op(const std::string& name,
+                 const std::string& category,
+                 std::vector<TimingRecord>& timings,
+                 Fn&& fn) {
+    using Ret = std::invoke_result_t<Fn&>;
+    const auto start = std::chrono::steady_clock::now();
+
+    if constexpr (std::is_void_v<Ret>) {
+        fn();
+        const auto stop = std::chrono::steady_clock::now();
+        timings.push_back(TimingRecord{
+            "main-serial",
+            name,
+            category,
+            std::chrono::duration<float, std::milli>(stop - start).count(),
+            0.0,
+        });
+    } else {
+        Ret ret = fn();
+        const auto stop = std::chrono::steady_clock::now();
+        timings.push_back(TimingRecord{
+            "main-serial",
+            name,
+            category,
+            std::chrono::duration<float, std::milli>(stop - start).count(),
+            0.0,
+        });
+        return ret;
+    }
+}
+
+bool is_operator_timing_record(const TimingRecord& timing) {
+    return timing.category == "h2d" ||
+           timing.category == "kernel" ||
+           timing.category == "d2h";
+}
+
+struct TimingTotals {
+    float gpu_operator_ms = 0.0f;
+    float cpu_operator_ms = 0.0f;
+    float total_operator_ms = 0.0f;
+};
+
+struct StreamTimingTotals {
+    std::string stream_name;
+    float kernel_gpu_ms = 0.0f;
+    float kernel_total_ms = 0.0f;
+    float transfer_ms = 0.0f;
+    float total_ms = 0.0f;
+};
+
+float kernel_total_ms(const TimingRecord& timing) {
+    return timing.gpu_ms > 0.0f ? timing.gpu_ms : timing.cpu_ms;
+}
+
+TimingTotals compute_timing_totals(const std::vector<TimingRecord>& timings) {
+    std::vector<StreamTimingTotals> stream_totals;
+
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+
+        auto it = std::find_if(stream_totals.begin(), stream_totals.end(), [&](const auto& entry) {
+            return entry.stream_name == t.stream_name;
+        });
+        if (it == stream_totals.end()) {
+            stream_totals.push_back(StreamTimingTotals{t.stream_name});
+            it = std::prev(stream_totals.end());
+        }
+
+        if (t.category == "kernel") {
+            it->kernel_gpu_ms += t.gpu_ms;
+            it->kernel_total_ms += kernel_total_ms(t);
+            it->total_ms += kernel_total_ms(t);
+        } else {
+            it->transfer_ms += t.cpu_ms;
+            it->total_ms += t.cpu_ms;
+        }
+    }
+
+    TimingTotals totals;
+    for (const auto& entry : stream_totals) {
+        totals.gpu_operator_ms = std::max(totals.gpu_operator_ms, entry.kernel_gpu_ms);
+        totals.cpu_operator_ms = std::max(totals.cpu_operator_ms, entry.transfer_ms);
+        totals.total_operator_ms = std::max(totals.total_operator_ms, entry.total_ms);
+    }
+    return totals;
+}
+
+void print_timing_summary(const std::vector<TimingRecord>& timings) {
+    std::cout << "========== 绠楀瓙璁℃椂 ==========\n";
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+        std::cout << std::fixed << std::setprecision(3)
+                  << "[" << t.stream_name << "] "
+                  << "[" << t.category << "] "
+                  << t.name
+                  << ": cpu=" << t.cpu_ms << " ms"
+                  << ", cudaEvent=" << t.gpu_ms << " ms\n";
+    }
+    std::cout << "---------- Timing totals ----------\n";
+    const TimingTotals totals = compute_timing_totals(timings);
+    std::cout << "GPU operator time: " << totals.gpu_operator_ms << " ms\n"
+              << "Cpu operator time: " << totals.cpu_operator_ms << " ms\n"
+              << "Total operator time: " << totals.total_operator_ms << " ms\n";
+    std::cout << '\n';
+}
+
 // =========================
 // 2. Helper functions
 // =========================
-double db20(double x, double eps = 1e-12) {
+float db20(float x, float eps = 1e-12) {
     return cuSP::common::db20(x, eps);
 }
 
-double db10(double x, double eps = 1e-12) {
+float db10(float x, float eps = 1e-12) {
     return cuSP::common::db10(x, eps);
 }
 
@@ -145,35 +281,79 @@ std::size_t next_pow2(std::size_t n) {
     return cuSP::common::next_pow2(n);
 }
 
-std::vector<double> make_window(const std::string& name, std::size_t n) {
-    return cuSP::common::make_window(name, n);
+std::vector<float> make_window(const std::string& name, std::size_t n) {
+    return cuSP::common::make_window_f32(name, n);
 }
 
 void fft_inplace(std::vector<Complex>& a, bool inverse) {
     cuSP::common::fft_inplace(a, inverse);
 }
 
-std::vector<Complex> make_lfm_pulse(double fs, double Tp, double B) {
+std::vector<Complex> make_lfm_pulse(float fs, float Tp, float B) {
     return cuSP::task1_ops::make_lfm_pulse(fs, Tp, B);
 }
 
 Matrix<Complex> simulate_echo_matrix(const std::vector<Complex>& templ,
-                                     double fs,
-                                     double PRI,
+                                     float fs,
+                                     float PRI,
                                      std::size_t num_pulses,
-                                     double fc,
+                                     float fc,
                                      const std::vector<Target>& targets,
-                                     double snr_db,
+                                     float snr_db,
                                      std::mt19937& rng) {
-    return cuSP::task1_ops::simulate_echo_matrix<Matrix>(
-        templ, fs, PRI, num_pulses, fc, targets, snr_db, rng);
+    const float lambda = kLightSpeed / fc;
+    const std::size_t samples_per_pulse = templ.size();
+
+    Matrix<Complex> x(num_pulses, samples_per_pulse, Complex(0.0, 0.0));
+
+    for (const auto& target : targets) {
+        const float tau = 2.0 * target.R / kLightSpeed;
+        const float fd = 2.0 * target.v / lambda;
+        const int delay_samp = static_cast<int>(std::llround(tau * fs));
+
+        if (delay_samp < 0 || static_cast<std::size_t>(delay_samp) >= samples_per_pulse) {
+            continue;
+        }
+
+        std::vector<Complex> delayed(samples_per_pulse, Complex(0.0, 0.0));
+        const std::size_t valid_len = samples_per_pulse - static_cast<std::size_t>(delay_samp);
+        for (std::size_t n = 0; n < valid_len; ++n) {
+            delayed[static_cast<std::size_t>(delay_samp) + n] = templ[n];
+        }
+
+        for (std::size_t p = 0; p < num_pulses; ++p) {
+            const float phase = 2.0 * kPi * fd * static_cast<float>(p) * PRI;
+            const Complex slow_phase(std::cos(phase), std::sin(phase));
+            for (std::size_t n = 0; n < samples_per_pulse; ++n) {
+                x(p, n) += (slow_phase * delayed[n]) * target.amp;
+            }
+        }
+    }
+
+    float signal_power = 0.0;
+    for (const auto& value : x.data) {
+        signal_power += std::norm(value);
+    }
+    signal_power /= static_cast<float>(x.data.size());
+
+    const float snr_linear = std::pow(10.0, snr_db / 10.0);
+    const float noise_power = signal_power / snr_linear;
+    const float noise_sigma = std::sqrt(noise_power / 2.0);
+
+    std::normal_distribution<float> normal(0.0f, 1.0f);
+    for (auto& value : x.data) {
+        value += Complex(static_cast<float>(noise_sigma) * normal(rng),
+                         static_cast<float>(noise_sigma) * normal(rng));
+    }
+
+    return x;
 }
 
-std::vector<double> build_range_axis(double fs, std::size_t nfft) {
+std::vector<float> build_range_axis(float fs, std::size_t nfft) {
     return cuSP::task1_ops::build_range_axis(fs, nfft);
 }
 
-std::vector<double> build_velocity_axis(double fc, double PRI, std::size_t nfft_doppler) {
+std::vector<float> build_velocity_axis(float fc, float PRI, std::size_t nfft_doppler) {
     return cuSP::task1_ops::build_velocity_axis(fc, PRI, nfft_doppler);
 }
 
@@ -227,8 +407,8 @@ std::vector<std::pair<int, int>> nms_2d(const std::vector<std::pair<int, int>>& 
 
 std::vector<Detection> extract_detections(const Matrix<float>& rd_map_power,
                                           const Matrix<std::uint8_t>& det_mask,
-                                          const std::vector<double>& range_axis,
-                                          const std::vector<double>& velocity_axis,
+                                          const std::vector<float>& range_axis,
+                                          const std::vector<float>& velocity_axis,
                                           std::size_t top_k = 10) {
     std::vector<std::pair<int, int>> det_idx;
     for (std::size_t i = 0; i < det_mask.rows; ++i) {
@@ -270,12 +450,12 @@ std::vector<Detection> extract_detections(const Matrix<float>& rd_map_power,
 }
 
 void print_target_summary(const Params& params) {
-    const double lambda = kLightSpeed / params.fc;
+    const float lambda = kLightSpeed / params.fc;
     std::cout << "========== 理论目标参数 ==========\n";
     for (std::size_t k = 0; k < params.targets.size(); ++k) {
         const auto& target = params.targets[k];
-        const double tau = 2.0 * target.R / kLightSpeed;
-        const double fd = 2.0 * target.v / lambda;
+        const float tau = 2.0 * target.R / kLightSpeed;
+        const float fd = 2.0 * target.v / lambda;
         std::cout << "目标" << (k + 1)
                   << ": R=" << std::fixed << std::setprecision(2) << target.R << " m"
                   << ", v=" << target.v << " m/s"
@@ -299,15 +479,15 @@ Matrix<Complex> pulse_doppler_cpu(const Matrix<Complex>& x,
     return cuSP::task1_ops::pulse_doppler_cpu<Matrix>(x, window, nfft);
 }
 
-double cfar_alpha_cpu(double pfa, int N) {
+float cfar_alpha_cpu(float pfa, int N) {
     return cuSP::task1_ops::cfar_alpha_cpu(pfa, N);
 }
 
-Matrix<double> integral_image_2d(const Matrix<float>& array) {
+Matrix<float> integral_image_2d(const Matrix<float>& array) {
     return cuSP::task1_ops::integral_image_2d<Matrix>(array);
 }
 
-double rect_sum_2d(const Matrix<double>& integral,
+float rect_sum_2d(const Matrix<float>& integral,
                    int x1,
                    int y1,
                    int x2,
@@ -318,16 +498,16 @@ double rect_sum_2d(const Matrix<double>& integral,
 std::pair<Matrix<float>, Matrix<std::uint8_t>> ca_cfar_cpu(const Matrix<float>& array,
                                                            std::pair<int, int> guard_cells,
                                                            std::pair<int, int> reference_cells,
-                                                           double pfa = 1e-3) {
+                                                           float pfa = 1e-3) {
     return cuSP::task1_ops::ca_cfar_cpu<Matrix>(array, guard_cells, reference_cells, pfa);
 }
 
 AmbiguityImage ambgfun_cpu(const std::vector<Complex>& x,
-                           double fs,
-                           double prf,
+                           float fs,
+                           float prf,
                            const std::vector<Complex>* y = nullptr,
                            const std::string& cut = "2d",
-                           double cut_value = 0.0) {
+                           float cut_value = 0.0) {
     AmbiguityImage result;
     result.data = cuSP::task1_ops::ambgfun_2d<Matrix>(x, fs, prf, y, cut, cut_value);
     result.rows = result.data.rows;
@@ -350,11 +530,34 @@ std::vector<Complex> correlate_full(const std::vector<Complex>& a,
 
 std::filesystem::path resolve_output_dir() {
     const auto cwd = std::filesystem::current_path();
-    const auto repo_style = cwd / "cusignal_task";
-    if (std::filesystem::exists(repo_style) && std::filesystem::is_directory(repo_style)) {
-        return repo_style / "task1_cpp_outputs";
+    if (std::filesystem::exists(cwd / "cuSP_cpp" / "CMakeLists.txt")) {
+        return cwd / "cuSP_cpp" / "task1_cpp_outputs";
+    }
+    if (std::filesystem::exists(cwd / "CMakeLists.txt") &&
+        std::filesystem::exists(cwd / "include" / "cuSP_task1_ops.hpp")) {
+        return cwd / "task1_cpp_outputs";
     }
     return cwd / "task1_cpp_outputs";
+}
+
+std::filesystem::path make_transient_output_dir(const std::string& prefix, const std::string& data_level) {
+    const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+    return std::filesystem::temp_directory_path() /
+           (prefix + "_" + data_level + "_" + std::to_string(stamp));
+}
+
+std::filesystem::path resolve_runtime_output_dir(const RuntimeOptions& runtime, const std::string& prefix) {
+    if (runtime.save_output) {
+        return resolve_output_dir() / runtime.data_level;
+    }
+    return make_transient_output_dir(prefix, runtime.data_level);
+}
+
+void cleanup_runtime_output_dir(const RuntimeOptions& runtime, const std::filesystem::path& out_dir) {
+    if (!runtime.save_output) {
+        std::error_code ec;
+        std::filesystem::remove_all(out_dir, ec);
+    }
 }
 
 void ensure_directory(const std::filesystem::path& dir) {
@@ -362,12 +565,12 @@ void ensure_directory(const std::filesystem::path& dir) {
 }
 
 template <typename T>
-double to_double_value(const T& value) {
-    return static_cast<double>(value);
+float to_float_value(const T& value) {
+    return static_cast<float>(value);
 }
 
-double to_double_value(const std::uint8_t& value) {
-    return static_cast<double>(value);
+float to_float_value(const std::uint8_t& value) {
+    return static_cast<float>(value);
 }
 
 std::string shell_quote(const std::string& input) {
@@ -383,7 +586,7 @@ std::string shell_quote(const std::string& input) {
     return quoted;
 }
 
-std::string format_double_arg(double value) {
+std::string format_float_arg(float value) {
     std::ostringstream oss;
     oss << std::setprecision(17) << value;
     return oss.str();
@@ -392,8 +595,8 @@ std::string format_double_arg(double value) {
 void save_series_csv(const std::filesystem::path& path,
                      const std::string& x_label,
                      const std::string& y_label,
-                     const std::vector<double>& xs,
-                     const std::vector<double>& ys) {
+                     const std::vector<float>& xs,
+                     const std::vector<float>& ys) {
     if (xs.size() != ys.size()) {
         throw std::invalid_argument("save_series_csv requires matching x/y lengths");
     }
@@ -409,9 +612,9 @@ void save_series_csv(const std::filesystem::path& path,
 template <typename T>
 void save_matrix_csv(const std::filesystem::path& path,
                      const std::string& row_label,
-                     const std::vector<double>& row_axis,
+                     const std::vector<float>& row_axis,
                      const std::string& col_label,
-                     const std::vector<double>& col_axis,
+                     const std::vector<float>& col_axis,
                      const Matrix<T>& matrix) {
     if (row_axis.size() != matrix.rows || col_axis.size() != matrix.cols) {
         throw std::invalid_argument("save_matrix_csv axis lengths do not match matrix shape");
@@ -420,7 +623,7 @@ void save_matrix_csv(const std::filesystem::path& path,
     std::ofstream ofs(path);
     ofs << std::setprecision(10);
     ofs << row_label << "\\" << col_label;
-    for (const double value : col_axis) {
+    for (const float value : col_axis) {
         ofs << ',' << value;
     }
     ofs << '\n';
@@ -428,7 +631,7 @@ void save_matrix_csv(const std::filesystem::path& path,
     for (std::size_t r = 0; r < matrix.rows; ++r) {
         ofs << row_axis[r];
         for (std::size_t c = 0; c < matrix.cols; ++c) {
-            ofs << ',' << to_double_value(matrix(r, c));
+            ofs << ',' << to_float_value(matrix(r, c));
         }
         ofs << '\n';
     }
@@ -440,6 +643,96 @@ void save_raw_matrix_f32(const std::filesystem::path& path, const Matrix<float>&
               static_cast<std::streamsize>(matrix.data.size() * sizeof(float)));
 }
 
+void save_raw_meta(const std::filesystem::path& path,
+                   const std::string& dtype,
+                   const std::vector<std::size_t>& shape) {
+    std::ofstream ofs(path.string() + ".meta");
+    ofs << "dtype=" << dtype << "\n";
+    ofs << "shape=";
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        if (i != 0) {
+            ofs << ",";
+        }
+        ofs << shape[i];
+    }
+    ofs << "\n";
+}
+
+template <typename T>
+void save_raw_vector(const std::filesystem::path& path,
+                     const std::vector<T>& values,
+                     const std::string& dtype,
+                     const std::vector<std::size_t>& shape) {
+    std::ofstream ofs(path, std::ios::binary);
+    if (!values.empty()) {
+        ofs.write(reinterpret_cast<const char*>(values.data()),
+                  static_cast<std::streamsize>(values.size() * sizeof(T)));
+    }
+    save_raw_meta(path, dtype, shape);
+}
+
+std::vector<float> to_float_vector(const std::vector<float>& values) {
+    return std::vector<float>(values.begin(), values.end());
+}
+
+std::vector<std::complex<float>> to_complex64_vector(const std::vector<Complex>& values) {
+    std::vector<std::complex<float>> out;
+    out.reserve(values.size());
+    for (const auto& value : values) {
+        out.emplace_back(static_cast<float>(value.real()), static_cast<float>(value.imag()));
+    }
+    return out;
+}
+
+std::vector<std::complex<float>> to_complex64_vector(const Matrix<Complex>& matrix) {
+    return to_complex64_vector(matrix.data);
+}
+
+void save_vector_f32_raw(const std::filesystem::path& dir,
+                         const std::string& name,
+                         const std::vector<float>& values) {
+    save_raw_vector(dir / (name + ".bin"), to_float_vector(values), "float32", {values.size()});
+}
+
+void save_vector_complex64_raw(const std::filesystem::path& dir,
+                               const std::string& name,
+                               const std::vector<Complex>& values) {
+    save_raw_vector(dir / (name + ".bin"), to_complex64_vector(values), "complex64", {values.size()});
+}
+
+void save_matrix_complex64_raw(const std::filesystem::path& dir,
+                               const std::string& name,
+                               const Matrix<Complex>& matrix) {
+    save_raw_vector(dir / (name + ".bin"),
+                    to_complex64_vector(matrix),
+                    "complex64",
+                    {matrix.rows, matrix.cols});
+}
+
+void save_matrix_f32_raw(const std::filesystem::path& dir,
+                         const std::string& name,
+                         const Matrix<float>& matrix) {
+    const auto path = dir / (name + ".bin");
+    save_raw_matrix_f32(path, matrix);
+    save_raw_meta(path, "float32", {matrix.rows, matrix.cols});
+}
+
+void save_matrix_u8_raw(const std::filesystem::path& dir,
+                        const std::string& name,
+                        const Matrix<std::uint8_t>& matrix) {
+    save_raw_vector(dir / (name + ".bin"), matrix.data, "uint8", {matrix.rows, matrix.cols});
+}
+
+std::vector<Complex> complex_window_vector(const std::string& name, std::size_t n) {
+    const auto weights = make_window(name, n);
+    std::vector<Complex> out;
+    out.reserve(weights.size());
+    for (float value : weights) {
+        out.emplace_back(value, 0.0);
+    }
+    return out;
+}
+
 Matrix<float> to_float_matrix(const Matrix<std::uint8_t>& matrix) {
     Matrix<float> out(matrix.rows, matrix.cols, 0.0f);
     for (std::size_t i = 0; i < matrix.rows; ++i) {
@@ -448,6 +741,75 @@ Matrix<float> to_float_matrix(const Matrix<std::uint8_t>& matrix) {
         }
     }
     return out;
+}
+
+void save_task1_intermediate_data(const std::filesystem::path& out_dir,
+                                  const std::vector<Complex>& tx,
+                                  const Matrix<Complex>& rx,
+                                  const std::vector<Complex>& pc_window,
+                                  const std::vector<Complex>& doppler_window,
+                                  const Matrix<Complex>& pc,
+                                  const Matrix<Complex>& pd,
+                                  const Matrix<Complex>& rd,
+                                  const Matrix<float>& rd_power,
+                                  const Matrix<float>& threshold,
+                                  const Matrix<std::uint8_t>& det_mask,
+                                  const Matrix<float>& amf,
+                                  const std::vector<float>& range_axis,
+                                  const std::vector<float>& velocity_axis) {
+    const auto data_dir = out_dir / "data";
+    ensure_directory(data_dir);
+
+    save_vector_complex64_raw(data_dir, "tx", tx);
+    save_matrix_complex64_raw(data_dir, "rx", rx);
+    save_vector_complex64_raw(data_dir, "pc_window", pc_window);
+    save_vector_complex64_raw(data_dir, "doppler_window", doppler_window);
+    save_matrix_complex64_raw(data_dir, "pc", pc);
+    save_matrix_complex64_raw(data_dir, "pd", pd);
+    save_matrix_complex64_raw(data_dir, "rd", rd);
+    save_matrix_f32_raw(data_dir, "rd_power", rd_power);
+    save_matrix_f32_raw(data_dir, "cfar_threshold", threshold);
+    save_matrix_u8_raw(data_dir, "cfar_mask", det_mask);
+    save_matrix_f32_raw(data_dir, "ambiguity_function", amf);
+    save_vector_f32_raw(data_dir, "range_axis", range_axis);
+    save_vector_f32_raw(data_dir, "velocity_axis", velocity_axis);
+
+    std::cout << "Intermediate data saved to: " << data_dir.string() << "\n";
+}
+
+void save_timing_csv(const std::filesystem::path& out_dir,
+                     const std::vector<TimingRecord>& timings,
+                     const TimingTotals& totals) {
+    ensure_directory(out_dir);
+    std::ofstream ofs(out_dir / "timing.csv");
+    ofs << "task,implementation,component,stream,category,cpu_ms,gpu_ms,composition_ms,notes\n";
+    ofs << std::setprecision(10);
+    for (const auto& t : timings) {
+        if (!is_operator_timing_record(t)) {
+            continue;
+        }
+        const float composition_ms = (t.category == "kernel") ? kernel_total_ms(t) : t.cpu_ms;
+        ofs << "task1,cpp," << t.name << ','
+            << t.stream_name << ','
+            << t.category << ','
+            << t.cpu_ms << ','
+            << t.gpu_ms << ','
+            << composition_ms << ",\n";
+    }
+    ofs << "task1,cpp,total_gpu_operator,main-serial,kernel,0,"
+        << totals.gpu_operator_ms << ','
+        << totals.gpu_operator_ms
+        << ",max stream sum(kernel cudaEvent)\n";
+    ofs << "task1,cpp,total_cpu_operator,main-serial,h2d+d2h,"
+        << totals.cpu_operator_ms
+        << ",0,"
+        << totals.cpu_operator_ms
+        << ",max stream sum(h2d+d2h cpu_ms)\n";
+    ofs << "task1,cpp,total_operator,main-serial,h2d+kernel+d2h,"
+        << totals.total_operator_ms << ','
+        << totals.gpu_operator_ms << ','
+        << totals.total_operator_ms
+        << ",CPU-only kernel uses cpu_ms in composition_ms\n";
 }
 
 std::string resolve_plot_python(const RuntimeOptions& options) {
@@ -500,10 +862,10 @@ void launch_matplotlib_visualization(const RuntimeOptions& runtime,
                                      std::size_t rd_cols,
                                      std::size_t amf_rows,
                                      std::size_t amf_cols,
-                                     double range_min,
-                                     double range_max,
-                                     double vel_min,
-                                     double vel_max) {
+                                     float range_min,
+                                     float range_max,
+                                     float vel_min,
+                                     float vel_max) {
     const auto script_path = out_dir / "task1_cpp_plot_driver.py";
 
     std::ofstream script(script_path);
@@ -666,10 +1028,10 @@ else:
         std::to_string(rd_cols) + " " +
         std::to_string(amf_rows) + " " +
         std::to_string(amf_cols) + " " +
-        format_double_arg(range_min) + " " +
-        format_double_arg(range_max) + " " +
-        format_double_arg(vel_min) + " " +
-        format_double_arg(vel_max) + " " +
+        format_float_arg(range_min) + " " +
+        format_float_arg(range_max) + " " +
+        format_float_arg(vel_min) + " " +
+        format_float_arg(vel_max) + " " +
         (runtime.headless ? "1" : "0");
 
     const int status = std::system(command.c_str());
@@ -678,35 +1040,15 @@ else:
     }
 }
 
-Params make_default_params() {
-    return Params{};
-}
-
-Params maybe_make_smoke_test_params(Params params, const RuntimeOptions& options) {
-    if (!options.smoke_test) {
-        return params;
-    }
-
-    params.B = 20e6;
-    params.Tp = 4e-6;
-    params.fs = 40e6;
-    params.num_pulses = 16;
-    params.reference_cells = {4, 8};
-    params.top_k = 2;
-    return params;
-}
-
 RuntimeOptions parse_runtime_options(int argc, char** argv) {
     RuntimeOptions options;
 
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
-        if (arg == "--no-viz") {
+        if (arg == "--save-output" || arg == "--output") {
+            options.save_output = true;
+        } else if (arg == "--no-viz") {
             options.enable_visualization = false;
-        } else if (arg == "--skip-ambiguity") {
-            options.compute_ambiguity = false;
-        } else if (arg == "--smoke-test") {
-            options.smoke_test = true;
         } else if (arg == "--headless") {
             options.headless = true;
         } else if (arg == "--plot-python") {
@@ -714,10 +1056,16 @@ RuntimeOptions parse_runtime_options(int argc, char** argv) {
                 throw std::invalid_argument("--plot-python requires a following path");
             }
             options.plot_python = argv[++i];
+        } else if (arg == "--level") {
+            if (i + 1 >= argc) {
+                throw std::invalid_argument("--level requires L1, L2, or L3");
+            }
+            options.data_level = argv[++i];
+            if (options.data_level != "L1" && options.data_level != "L2" && options.data_level != "L3") {
+                throw std::invalid_argument("--level must be L1, L2, or L3");
+            }
         } else if (arg == "--help" || arg == "-h") {
-            std::cout
-                << "Usage: task1_cpp [--no-viz] [--skip-ambiguity] [--smoke-test] "
-                << "[--headless] [--plot-python PATH]\n";
+            std::cout << "Usage: task1_cpp [--level L1|L2|L3] [--save-output] [--no-viz] [--headless] [--plot-python PATH]\n";
             std::exit(0);
         } else {
             throw std::invalid_argument("Unknown argument: " + arg);
@@ -735,27 +1083,28 @@ RuntimeOptions parse_runtime_options(int argc, char** argv) {
 int main(int argc, char** argv) {
     try {
         const RuntimeOptions runtime = parse_runtime_options(argc, argv);
-        Params params = maybe_make_smoke_test_params(make_default_params(), runtime);
+        const Params params = params_for_level(runtime.data_level);
 
         std::mt19937 rng(0);
-        const auto t0 = std::chrono::steady_clock::now();
+        std::vector<TimingRecord> timings;
 
-        const double fc = params.fc;
-        const double B = params.B;
-        const double Tp = params.Tp;
-        const double PRI = params.PRI;
-        const double fs = params.fs;
+        const float fc = params.fc;
+        const float B = params.B;
+        const float Tp = params.Tp;
+        const float PRI = params.PRI;
+        const float fs = params.fs;
         const std::size_t num_pulses = params.num_pulses;
         const auto& targets = params.targets;
-        const double snr_db = params.snr_db;
+        const float snr_db = params.snr_db;
 
+        std::cout << "Data level = " << runtime.data_level << '\n';
         print_target_summary(params);
 
-        const double lambda = kLightSpeed / fc;
-        const double range_resolution = kLightSpeed / (2.0 * B);
-        const double velocity_resolution = lambda / (2.0 * static_cast<double>(num_pulses) * PRI);
-        const double vmax_unamb = lambda / (4.0 * PRI);
-        const double rmax_unamb = kLightSpeed * PRI / 2.0;
+        const float lambda = kLightSpeed / fc;
+        const float range_resolution = kLightSpeed / (2.0 * B);
+        const float velocity_resolution = lambda / (2.0 * static_cast<float>(num_pulses) * PRI);
+        const float vmax_unamb = lambda / (4.0 * PRI);
+        const float rmax_unamb = kLightSpeed * PRI / 2.0;
 
         std::cout << "========== 雷达参数 ==========\n";
         std::cout << std::fixed << std::setprecision(2);
@@ -777,7 +1126,9 @@ int main(int argc, char** argv) {
         // =========================
         // 1) Transmit waveform
         // =========================
-        const auto tx = make_lfm_pulse(fs, Tp, B);
+        const auto tx = time_cpu_op("host::make_lfm_pulse", "host", timings, [&]() {
+            return make_lfm_pulse(fs, Tp, B);
+        });
         const std::size_t samples_per_pulse = tx.size();
         std::cout << "每脉冲采样点数 = " << samples_per_pulse << '\n';
 
@@ -787,75 +1138,95 @@ int main(int argc, char** argv) {
         // =========================
         // 2) Echo simulation
         // =========================
-        const auto rx = simulate_echo_matrix(
-            tx,
-            fs,
-            PRI,
-            num_pulses,
-            fc,
-            targets,
-            snr_db,
-            rng);
+        const auto rx = time_cpu_op("host::simulate_echo_matrix", "host", timings, [&]() {
+            return simulate_echo_matrix(
+                tx,
+                fs,
+                PRI,
+                num_pulses,
+                fc,
+                targets,
+                snr_db,
+                rng);
+        });
+
+        const auto pc_window = time_cpu_op("windows::get_window(hamming)", "kernel", timings, [&]() {
+            return complex_window_vector(params.pc_window, samples_per_pulse);
+        });
+        const auto doppler_window = time_cpu_op("windows::get_window(hann)", "kernel", timings, [&]() {
+            return complex_window_vector(params.doppler_window, num_pulses);
+        });
 
         // =========================
         // 3) Pulse compression
         // =========================
-        const auto pc = pulse_compression_cpu(
-            rx,
-            tx,
-            params.pc_normalize,
-            params.pc_window,
-            nfft_range);
+        const auto pc = time_cpu_op("radartools::pulse_compression", "kernel", timings, [&]() {
+            return pulse_compression_cpu(
+                rx,
+                tx,
+                params.pc_normalize,
+                params.pc_window,
+                nfft_range);
+        });
 
         // =========================
         // 4) Pulse Doppler
         // =========================
-        const auto pd = pulse_doppler_cpu(
-            pc,
-            params.doppler_window,
-            nfft_doppler);
+        const auto pd = time_cpu_op("radartools::pulse_doppler", "kernel", timings, [&]() {
+            return pulse_doppler_cpu(
+                pc,
+                params.doppler_window,
+                nfft_doppler);
+        });
 
-        const auto rd = fftshift_axis0(pd);
-        const auto rd_power = abs_square(rd);
+        const auto rd = time_cpu_op("fft::fftshift(axis=0)", "kernel", timings, [&]() {
+            return fftshift_axis0(pd);
+        });
+        const auto rd_power = time_cpu_op("kernel::abs_square", "kernel", timings, [&]() {
+            return abs_square(rd);
+        });
 
         // =========================
         // 5) CFAR detection
         // =========================
-        const auto [threshold, det_mask] = ca_cfar_cpu(
-            rd_power,
-            params.guard_cells,
-            params.reference_cells,
-            params.pfa);
+        const auto cfar = time_cpu_op("radartools::ca_cfar", "kernel", timings, [&]() {
+            return ca_cfar_cpu(
+                rd_power,
+                params.guard_cells,
+                params.reference_cells,
+                params.pfa);
+        });
+        const auto& threshold = cfar.first;
+        const auto& det_mask = cfar.second;
 
         // =========================
         // 6) Ambiguity function
         // =========================
-        AmbiguityImage amf;
-        if (runtime.compute_ambiguity) {
-            amf = ambgfun_cpu(tx, fs, 1.0 / PRI, nullptr, "2d");
-        }
-
-        const auto t1 = std::chrono::steady_clock::now();
-        const std::chrono::duration<double> elapsed = t1 - t0;
-        std::cout << std::fixed << std::setprecision(6)
-                  << "Processing time before visualization: "
-                  << elapsed.count() << " s\n";
+        const AmbiguityImage amf = time_cpu_op("radartools::ambgfun", "kernel", timings, [&]() {
+            return ambgfun_cpu(tx, fs, 1.0 / PRI, nullptr, "2d");
+        });
 
         // =========================
         // 7) Range / velocity axes
         // =========================
-        const auto range_axis = build_range_axis(fs, nfft_range);
-        const auto velocity_axis = build_velocity_axis(fc, PRI, nfft_doppler);
+        const auto range_axis = time_cpu_op("host::build_range_axis", "host", timings, [&]() {
+            return build_range_axis(fs, nfft_range);
+        });
+        const auto velocity_axis = time_cpu_op("host::build_velocity_axis", "host", timings, [&]() {
+            return build_velocity_axis(fc, PRI, nfft_doppler);
+        });
 
         // =========================
         // 8) Detection extraction
         // =========================
-        const auto detections = extract_detections(
-            rd_power,
-            det_mask,
-            range_axis,
-            velocity_axis,
-            params.top_k);
+        const auto detections = time_cpu_op("host::extract_detections", "host", timings, [&]() {
+            return extract_detections(
+                rd_power,
+                det_mask,
+                range_axis,
+                velocity_axis,
+                params.top_k);
+        });
 
         std::cout << "========== 检测结果 ==========\n";
         if (detections.empty()) {
@@ -870,6 +1241,37 @@ int main(int argc, char** argv) {
         }
         std::cout << '\n';
 
+        if (!runtime.save_output && !runtime.enable_visualization) {
+            print_timing_summary(timings);
+            return 0;
+        }
+
+        const auto out_dir = resolve_runtime_output_dir(runtime, "task1_cpp_plot");
+        ensure_directory(out_dir);
+        if (runtime.save_output) {
+            time_cpu_op("save_task1_intermediate_data", "host", timings, [&]() {
+                save_task1_intermediate_data(
+                    out_dir,
+                    tx,
+                    rx,
+                    pc_window,
+                    doppler_window,
+                    pc,
+                    pd,
+                    rd,
+                    rd_power,
+                    threshold,
+                    det_mask,
+                    amf.data,
+                    range_axis,
+                    velocity_axis);
+            });
+        }
+        print_timing_summary(timings);
+        if (runtime.save_output) {
+            save_timing_csv(out_dir, timings, compute_timing_totals(timings));
+        }
+
         if (!runtime.enable_visualization) {
             return 0;
         }
@@ -877,10 +1279,7 @@ int main(int argc, char** argv) {
         // =========================
         // 4. Visualization
         // =========================
-        const auto out_dir = resolve_output_dir();
-        ensure_directory(out_dir);
-
-        const double max_range = 500.0;
+        const float max_range = 500.0;
         std::vector<std::size_t> range_idx;
         range_idx.reserve(range_axis.size());
         for (std::size_t i = 0; i < range_axis.size(); ++i) {
@@ -889,10 +1288,10 @@ int main(int argc, char** argv) {
             }
         }
 
-        std::vector<double> time_axis_us(tx.size(), 0.0);
-        std::vector<double> tx_real(tx.size(), 0.0);
+        std::vector<float> time_axis_us(tx.size(), 0.0);
+        std::vector<float> tx_real(tx.size(), 0.0);
         for (std::size_t i = 0; i < tx.size(); ++i) {
-            time_axis_us[i] = static_cast<double>(i) / fs * 1e6;
+            time_axis_us[i] = static_cast<float>(i) / fs * 1e6;
             tx_real[i] = tx[i].real();
         }
         save_series_csv(out_dir / "transmitted_lfm_waveform_full_duration.csv",
@@ -901,10 +1300,10 @@ int main(int argc, char** argv) {
                         time_axis_us,
                         tx_real);
 
-        std::vector<double> rx_index(rx.cols, 0.0);
-        std::vector<double> rx_mag(rx.cols, 0.0);
+        std::vector<float> rx_index(rx.cols, 0.0);
+        std::vector<float> rx_mag(rx.cols, 0.0);
         for (std::size_t n = 0; n < rx.cols; ++n) {
-            rx_index[n] = static_cast<double>(n);
+            rx_index[n] = static_cast<float>(n);
             rx_mag[n] = std::abs(rx(0, n));
         }
         save_series_csv(out_dir / "received_echo_magnitude_first_pulse.csv",
@@ -913,8 +1312,8 @@ int main(int argc, char** argv) {
                         rx_index,
                         rx_mag);
 
-        std::vector<double> range_cut(range_idx.size(), 0.0);
-        std::vector<double> pc_mag_cut(range_idx.size(), 0.0);
+        std::vector<float> range_cut(range_idx.size(), 0.0);
+        std::vector<float> pc_mag_cut(range_idx.size(), 0.0);
         for (std::size_t k = 0; k < range_idx.size(); ++k) {
             const std::size_t idx = range_idx[k];
             range_cut[k] = range_axis[idx];
@@ -966,12 +1365,12 @@ int main(int argc, char** argv) {
         save_raw_matrix_f32(out_dir / "cfar_detection_0_500m.bin", det_float_cut);
 
         const auto acf = correlate_full(tx, tx);
-        std::vector<double> lags;
-        std::vector<double> acf_db;
+        std::vector<float> lags;
+        std::vector<float> acf_db;
         lags.reserve(acf.size());
         acf_db.reserve(acf.size());
 
-        double acf_peak = 0.0;
+        float acf_peak = 0.0;
         for (const auto& value : acf) {
             acf_peak = std::max(acf_peak, std::abs(value));
         }
@@ -983,7 +1382,7 @@ int main(int argc, char** argv) {
         for (std::size_t i = 0; i < acf.size(); ++i) {
             const int lag = lag_start + static_cast<int>(i);
             if (lag >= -80 && lag <= 80) {
-                lags.push_back(static_cast<double>(lag));
+                lags.push_back(static_cast<float>(lag));
                 acf_db.push_back(db20(std::abs(acf[i]) / acf_peak + 1e-12));
             }
         }
@@ -993,42 +1392,40 @@ int main(int argc, char** argv) {
                         lags,
                         acf_db);
 
-        std::filesystem::path amf_bin_path;
-        std::size_t amf_rows = 0;
-        std::size_t amf_cols = 0;
-        if (runtime.compute_ambiguity) {
-            amf_bin_path = out_dir / "ambiguity_function_2d.bin";
-            save_raw_matrix_f32(amf_bin_path, amf.data);
-            amf_rows = amf.rows;
-            amf_cols = amf.cols;
+        const auto amf_bin_path = out_dir / "ambiguity_function_2d.bin";
+        save_raw_matrix_f32(amf_bin_path, amf.data);
+        const std::size_t amf_rows = amf.rows;
+        const std::size_t amf_cols = amf.cols;
 
-            amf.data.data.clear();
-            amf.data.data.shrink_to_fit();
+        try {
+            launch_matplotlib_visualization(
+                runtime,
+                out_dir,
+                out_dir / "transmitted_lfm_waveform_full_duration.csv",
+                out_dir / "received_echo_magnitude_first_pulse.csv",
+                out_dir / "pulse_compression_output_0_500m.csv",
+                out_dir / "lfm_autocorrelation_mainlobe_sidelobes.csv",
+                out_dir / "range_doppler_map_0_500m.bin",
+                out_dir / "cfar_threshold_0_500m.bin",
+                out_dir / "cfar_detection_0_500m.bin",
+                amf_bin_path,
+                rd_db_cut.rows,
+                rd_db_cut.cols,
+                amf_rows,
+                amf_cols,
+                range_cut.front(),
+                range_cut.back(),
+                velocity_axis.front(),
+                velocity_axis.back());
+        } catch (...) {
+            cleanup_runtime_output_dir(runtime, out_dir);
+            throw;
         }
 
-        launch_matplotlib_visualization(
-            runtime,
-            out_dir,
-            out_dir / "transmitted_lfm_waveform_full_duration.csv",
-            out_dir / "received_echo_magnitude_first_pulse.csv",
-            out_dir / "pulse_compression_output_0_500m.csv",
-            out_dir / "lfm_autocorrelation_mainlobe_sidelobes.csv",
-            out_dir / "range_doppler_map_0_500m.bin",
-            out_dir / "cfar_threshold_0_500m.bin",
-            out_dir / "cfar_detection_0_500m.bin",
-            amf_bin_path,
-            rd_db_cut.rows,
-            rd_db_cut.cols,
-            amf_rows,
-            amf_cols,
-            range_cut.front(),
-            range_cut.back(),
-            velocity_axis.front(),
-            velocity_axis.back());
-
-        if (runtime.headless) {
+        if (runtime.save_output && runtime.headless) {
             std::cout << "Plots saved to " << out_dir << '\n';
         }
+        cleanup_runtime_output_dir(runtime, out_dir);
 
         return 0;
     } catch (const std::exception& ex) {

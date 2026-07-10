@@ -274,6 +274,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
   /usr/include/x86_64-linux-gnu/c++/11/bits/c++io.h \
   /usr/include/c++/11/bits/fstream.tcc \
   /usr/include/c++/11/iostream \
+  /usr/include/c++/11/iterator \
+  /usr/include/c++/11/bits/stream_iterator.h \
   /usr/include/c++/11/numeric \
   /usr/include/c++/11/bits/stl_numeric.h \
   /usr/include/c++/11/bit \
@@ -282,43 +284,35 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
   /usr/include/c++/11/bits/random.h \
   /usr/include/x86_64-linux-gnu/c++/11/bits/opt_random.h \
   /usr/include/c++/11/bits/random.tcc \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_task2_ops.hpp \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_common.hpp \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/common/common.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_task2_ops.hpp \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_common.hpp \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/common/common.h \
   /usr/include/c++/11/cstddef \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/bsplines/bsplines.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/convolution/convolution.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/demod/demod.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/estimation/estimation.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/filtering/filtering.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/peak_finding/peak_finding.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/spectral_analysis/spectral_analysis.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/utils/utils.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/waveforms/waveforms.h \
-  /home/zhu/桌面/cuSignal/cuSP_cpp/wavelets/wavelets.h
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/bsplines/bsplines.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/convolution/convolution.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/demod/demod.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/estimation/estimation.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/filtering/filtering.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/peak_finding/peak_finding.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/spectral_analysis/spectral_analysis.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/utils/utils.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/waveforms/waveforms.h \
+  /home/zhu/桌面/cuSignal/cuSP_cpp/include/wavelets/wavelets.h
 
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/wavelets/wavelets.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/waveforms/waveforms.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/waveforms/waveforms.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/utils/utils.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/utils/utils.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/spectral_analysis/spectral_analysis.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/spectral_analysis/spectral_analysis.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/estimation/estimation.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/peak_finding/peak_finding.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/convolution/convolution.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/filtering/filtering.h:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/common/common.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/estimation/estimation.h:
-
-/home/zhu/桌面/cuSignal/cuSP_cpp/demod/demod.h:
-
-/home/zhu/桌面/cuSignal/cuSP_cpp/convolution/convolution.h:
-
-/home/zhu/桌面/cuSignal/cuSP_cpp/bsplines/bsplines.h:
-
-/home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_common.hpp:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_common.hpp:
 
 /usr/include/c++/11/bits/random.tcc:
 
@@ -386,6 +380,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 
 /usr/include/c++/11/bits/streambuf.tcc:
 
+/usr/include/c++/11/bits/stream_iterator.h:
+
 /usr/include/c++/11/system_error:
 
 /usr/include/c++/11/bits/locale_classes.tcc:
@@ -429,6 +425,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 /usr/include/c++/11/bits/functional_hash.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h:
+
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/bsplines/bsplines.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/FILE.h:
 
@@ -532,6 +530,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 
 /usr/include/c++/11/tr1/poly_hermite.tcc:
 
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/cuSP_task2_ops.hpp:
+
 /usr/include/features.h:
 
 /usr/include/c++/11/tuple:
@@ -549,6 +549,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 /usr/include/c++/11/vector:
 
 /usr/include/c++/11/bits/std_abs.h:
+
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/peak_finding/peak_finding.h:
 
 /usr/include/c++/11/bits/enable_special_members.h:
 
@@ -686,6 +688,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 
 /usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
 
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/filtering/filtering.h:
+
 /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h:
 
 /usr/include/c++/11/ctime:
@@ -697,6 +701,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 /usr/include/c++/11/bits/node_handle.h:
 
 /usr/include/c++/11/bits/alloc_traits.h:
+
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/demod/demod.h:
 
 /usr/include/c++/11/ext/new_allocator.h:
 
@@ -732,7 +738,7 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 
 /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/cuSP_task2_ops.hpp:
+/home/zhu/桌面/cuSignal/cuSP_cpp/include/wavelets/wavelets.h:
 
 /usr/include/c++/11/bits/localefwd.h:
 
@@ -816,8 +822,6 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 
 /usr/include/c++/11/iosfwd:
 
-/home/zhu/桌面/cuSignal/cuSP_cpp/common/common.h:
-
 /usr/include/c++/11/bits/hash_bytes.h:
 
 /usr/include/c++/11/bits/stringfwd.h:
@@ -851,6 +855,8 @@ CMakeFiles/task2_cpp.dir/task2.cpp.o: /home/zhu/桌面/cuSignal/cuSP_cpp/task2.c
 /usr/include/asm-generic/errno.h:
 
 /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h:
+
+/usr/include/c++/11/iterator:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/c++locale.h:
 
