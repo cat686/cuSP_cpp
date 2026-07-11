@@ -1,28 +1,10 @@
 #include "common/fftw_helpers.h"
+#include "common/common.h"
 
 #include <algorithm>
 #include <stdexcept>
 
-extern "C" {
-typedef float fftwf_complex[2];
-struct fftwf_plan_s;
-typedef struct fftwf_plan_s* fftwf_plan;
-void* fftwf_malloc(std::size_t n);
-void fftwf_free(void* p);
-fftwf_plan fftwf_plan_dft_1d(int n, fftwf_complex* in, fftwf_complex* out, int sign, unsigned flags);
-void fftwf_execute(const fftwf_plan p);
-void fftwf_destroy_plan(fftwf_plan p);
-}
-
 namespace cuSP::common {
-
-namespace {
-
-constexpr int kFftwForward = -1;
-constexpr int kFftwBackward = 1;
-constexpr unsigned kFftwEstimate = 64u;
-
-}  // namespace
 
 std::vector<Complex> fft_complex(const std::vector<Complex>& x, int n) {
     const int fft_size = (n > 0) ? n : static_cast<int>(x.size());
@@ -30,37 +12,15 @@ std::vector<Complex> fft_complex(const std::vector<Complex>& x, int n) {
         return {};
     }
 
-    auto* in =
-        reinterpret_cast<fftwf_complex*>(fftwf_malloc(sizeof(fftwf_complex) * static_cast<std::size_t>(fft_size)));
-    auto* out =
-        reinterpret_cast<fftwf_complex*>(fftwf_malloc(sizeof(fftwf_complex) * static_cast<std::size_t>(fft_size)));
-    if (in == nullptr || out == nullptr) {
-        throw std::bad_alloc();
-    }
+    const std::size_t padded_size = next_pow2(static_cast<std::size_t>(fft_size));
+    std::vector<Complex> padded(padded_size, Complex{});
+    const std::size_t copy_len = std::min(static_cast<std::size_t>(fft_size), x.size());
+    std::copy_n(x.begin(), copy_len, padded.begin());
 
-    for (int i = 0; i < fft_size; ++i) {
-        const Complex v = (i < static_cast<int>(x.size())) ? x[static_cast<std::size_t>(i)] : Complex{};
-        in[i][0] = static_cast<float>(v.real());
-        in[i][1] = static_cast<float>(v.imag());
-    }
+    fft_inplace(padded, false);
 
-    fftwf_plan plan = fftwf_plan_dft_1d(fft_size, in, out, kFftwForward, kFftwEstimate);
-    if (plan == nullptr) {
-        fftwf_free(in);
-        fftwf_free(out);
-        throw std::runtime_error("Failed to create FFTW forward plan.");
-    }
-    fftwf_execute(plan);
-
-    std::vector<Complex> y(static_cast<std::size_t>(fft_size));
-    for (int i = 0; i < fft_size; ++i) {
-        y[static_cast<std::size_t>(i)] = Complex(out[i][0], out[i][1]);
-    }
-
-    fftwf_destroy_plan(plan);
-    fftwf_free(in);
-    fftwf_free(out);
-    return y;
+    padded.resize(static_cast<std::size_t>(fft_size));
+    return padded;
 }
 
 std::vector<Complex> ifft_complex(const std::vector<Complex>& x, int n) {
@@ -69,38 +29,20 @@ std::vector<Complex> ifft_complex(const std::vector<Complex>& x, int n) {
         return {};
     }
 
-    auto* in =
-        reinterpret_cast<fftwf_complex*>(fftwf_malloc(sizeof(fftwf_complex) * static_cast<std::size_t>(fft_size)));
-    auto* out =
-        reinterpret_cast<fftwf_complex*>(fftwf_malloc(sizeof(fftwf_complex) * static_cast<std::size_t>(fft_size)));
-    if (in == nullptr || out == nullptr) {
-        throw std::bad_alloc();
-    }
+    const std::size_t padded_size = next_pow2(static_cast<std::size_t>(fft_size));
+    std::vector<Complex> padded(padded_size, Complex{});
+    const std::size_t copy_len = std::min(static_cast<std::size_t>(fft_size), x.size());
+    std::copy_n(x.begin(), copy_len, padded.begin());
 
-    for (int i = 0; i < fft_size; ++i) {
-        const Complex v = (i < static_cast<int>(x.size())) ? x[static_cast<std::size_t>(i)] : Complex{};
-        in[i][0] = static_cast<float>(v.real());
-        in[i][1] = static_cast<float>(v.imag());
-    }
+    fft_inplace(padded, true);
 
-    fftwf_plan plan = fftwf_plan_dft_1d(fft_size, in, out, kFftwBackward, kFftwEstimate);
-    if (plan == nullptr) {
-        fftwf_free(in);
-        fftwf_free(out);
-        throw std::runtime_error("Failed to create FFTW inverse plan.");
+    padded.resize(static_cast<std::size_t>(fft_size));
+    const double scale_correction =
+        static_cast<double>(padded_size) / static_cast<double>(fft_size);
+    for (auto& v : padded) {
+        v *= scale_correction;
     }
-    fftwf_execute(plan);
-
-    const double scale = 1.0 / static_cast<double>(fft_size);
-    std::vector<Complex> y(static_cast<std::size_t>(fft_size));
-    for (int i = 0; i < fft_size; ++i) {
-        y[static_cast<std::size_t>(i)] = scale * Complex(out[i][0], out[i][1]);
-    }
-
-    fftwf_destroy_plan(plan);
-    fftwf_free(in);
-    fftwf_free(out);
-    return y;
+    return padded;
 }
 
 std::vector<double> absolute_value(const std::vector<Complex>& x) {

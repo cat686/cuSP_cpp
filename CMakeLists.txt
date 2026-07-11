@@ -14,38 +14,7 @@ set(CUSP_CPP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 option(CUSP_CPP_BUILD_TASK1 "Build the task1_cpp executable" ON)
 option(CUSP_CPP_BUILD_TASK2 "Build the task2_cpp executable" ON)
 
-set(CUSP_CPP_FFTW3F_HINT_DIRS
-    /lib/x86_64-linux-gnu
-    /usr/lib/x86_64-linux-gnu
-    /lib
-    /usr/lib
-    /usr/local/lib
-)
-
-find_library(CUSP_CPP_FFTW3F_LIBRARY
-    NAMES fftw3f
-    HINTS ${CUSP_CPP_FFTW3F_HINT_DIRS}
-)
-
-if(NOT CUSP_CPP_FFTW3F_LIBRARY)
-    find_file(CUSP_CPP_FFTW3F_LIBRARY
-        NAMES libfftw3f.so.3 libfftw3f.so
-        PATHS ${CUSP_CPP_FFTW3F_HINT_DIRS}
-    )
-endif()
-
-if(NOT CUSP_CPP_FFTW3F_LIBRARY AND EXISTS "/lib/x86_64-linux-gnu/libfftw3f.so.3")
-    set(CUSP_CPP_FFTW3F_LIBRARY "/lib/x86_64-linux-gnu/libfftw3f.so.3")
-endif()
-
-if(NOT CUSP_CPP_FFTW3F_LIBRARY)
-    message(FATAL_ERROR
-        "Could not find an FFTW3f library. "
-        "Install libfftw3f or provide a path via -DCUSP_CPP_FFTW3F_LIBRARY=/path/to/libfftw3f.so.3"
-    )
-endif()
-
-message(STATUS "Using FFTW3f library: ${CUSP_CPP_FFTW3F_LIBRARY}")
+# FFTW3f 已替换为 common.cpp 中的纯 C++ fft_inplace() 实现，无需外部依赖
 
 set(CUSP_CPP_CORE_SOURCES
     ${CUSP_CPP_SOURCE_DIR}/bsplines/bsplines.cpp
@@ -72,7 +41,6 @@ target_include_directories(cusp_cpp_core
 
 target_link_libraries(cusp_cpp_core
     PUBLIC
-        ${CUSP_CPP_FFTW3F_LIBRARY}
 )
 
 target_compile_features(cusp_cpp_core PUBLIC cxx_std_17)

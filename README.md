@@ -56,8 +56,8 @@
 ## 构建
 
 ```bash
-cmake -S cuSP_cpp -B cuSP_cpp/build -DCMAKE_BUILD_TYPE=Release
-cmake --build cuSP_cpp/build --parallel
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 ```
 
 生成的可执行文件位于：
