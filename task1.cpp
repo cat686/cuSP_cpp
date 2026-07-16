@@ -80,10 +80,10 @@ struct Target {
 struct Params {
     float fc = 70e9;
     float B = 200e6;
-    float Tp = 10e-6;
+    float Tp = 5e-6;
     float PRI = 50e-6;
     float fs = 500e6;
-    std::size_t num_pulses = 128;
+    std::size_t num_pulses = 64;
 
     std::vector<Target> targets = {
         {30.0, 10.0, 1.0},
@@ -107,13 +107,14 @@ struct Params {
 Params params_for_level(const std::string& level) {
     Params params;
     if (level == "L1") {
-        params.Tp = 5e-6;
+        params.Tp = 2.5e-6;
         params.num_pulses = 64;
     } else if (level == "L2") {
-        // Default medium dataset.
+        params.Tp = 5e-6;
+        params.num_pulses = 64;
     } else if (level == "L3") {
         params.Tp = 15e-6;
-        params.num_pulses = 192;
+        params.num_pulses = 256;
     } else {
         throw std::invalid_argument("Unsupported data level: " + level);
     }

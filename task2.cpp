@@ -71,7 +71,7 @@ struct ParamMeta {
 struct Params {
     // ---------- 仿真与采样环境 ----------
     float fs = 10e6;
-    float duration = 2.0e-3;
+    float duration = 25.0e-3;
     std::uint32_t seed = 2026;
 
     // ---------- 目标信号：LFM ----------
@@ -118,8 +118,8 @@ struct Params {
     int csd_nperseg = 512;
     int csd_noverlap = 256;
     float cwt_w = 6.0;
-    int cwt_width_min = 4;
-    int cwt_width_max = 48;
+    int cwt_width_min = 15;
+    int cwt_width_max = 139;
 
     // ---------- 峰值检测 ----------
     int mod_peak_order = 12;
@@ -147,11 +147,11 @@ struct RuntimeOptions {
 };
 
 std::vector<ParamMeta> PARAM_TABLE = {
-    {"fs", "10000000.0", "Hz", "采样率，必须覆盖目标与干扰的最高频率成分", true, "过低会直接导致混叠，并破坏后续所有域的特征估计"},
-    {"duration", "0.002", "s", "总观测时长，需要完整覆盖高斯脉冲、LFM 段和周期干扰", false, ""},
-    {"seed", "2026", "-", "随机种子，用于保证噪声与仿真可复现", false, ""},
-    {"lfm_f0", "200000.0", "Hz", "LFM 起始频率，放在中频区域，避免靠近 0 和 Nyquist 边缘", true, "任务文档只给了选取原则，没有给出唯一数值"},
-    {"lfm_f1", "600000.0", "Hz", "LFM 终止频率，与起始频率共同决定带宽和斜率", true, "直接决定 STFT/CWT 中斜率是否明显"},
+    {"fs", "10000000.0", "Hz", "", true, ""},
+    {"duration", "0.025", "s", "", false, ""},
+    {"seed", "2026", "-", "", false, ""},
+    {"lfm_f0", "200000.0", "Hz", "", true, ""},
+    {"lfm_f1", "600000.0", "Hz", "", true, ""},
     {"lfm_start", "0.0007", "s", "LFM 在总观测窗中的起始时刻", false, ""},
     {"lfm_duration", "0.0008", "s", "LFM 持续时间", true, "与斜率共同决定时频图中的轨迹长度和可辨识度"},
     {"lfm_amp", "1.0", "-", "LFM 主分量幅度", false, ""},
@@ -181,8 +181,8 @@ std::vector<ParamMeta> PARAM_TABLE = {
     {"csd_nperseg", "512", "samples", "CSD 分段长度", true, "频率分辨率与时域稳健性之间存在直接折中"},
     {"csd_noverlap", "256", "samples", "CSD 分段重叠长度", false, ""},
     {"cwt_w", "6.0", "-", "Morlet2 小波参数 w", false, ""},
-    {"cwt_width_min", "4", "samples", "CWT 最小尺度", true, "与最大尺度一起决定时频域扫描频段"},
-    {"cwt_width_max", "48", "samples", "CWT 最大尺度", true, "尺度过大时会过分强调低频周期分量，削弱 chirp ridge"},
+    {"cwt_width_min", "15", "samples", "CWT 最小尺度", true, "与最大尺度一起决定时频域扫描频段"},
+    {"cwt_width_max", "139", "samples", "CWT 最大尺度", true, "尺度过大时会过分强调低频周期分量，削弱 chirp ridge"},
     {"mod_peak_order", "12", "samples", "调制域 argrelextrema 阶数", true, "直接影响瞬时频率峰值的稳定性"},
     {"time_peak_order", "20", "samples", "时域 argrelextrema 阶数", true, "过小会产生大量伪周期峰，过大则会漏检"},
     {"freq_peak_order", "6", "bins", "频域 argrelextrema 阶数", true, "决定是否把邻近谱峰误分成多个峰"},
@@ -217,20 +217,25 @@ void apply_data_level(const std::string& level) {
         params.echo_delay_s = 0.075e-3;
         params.csd_nperseg = 256;
         params.csd_noverlap = 128;
-        params.cwt_width_max = 32;
+        params.cwt_w = 6.25;
+        params.cwt_width_min = 8;
+        params.cwt_width_max = 36;
+        params.kalman_process_var = 2e-3;
+        params.activity_threshold_ratio = 0.10;
         params.activity_min_duration_s = 0.10e-3;
     } else if (level == "L2") {
         // Default medium dataset.
     } else if (level == "L3") {
         params.fs = 20e6;
-        params.duration = 4.0e-3;
+        params.duration = 25.0e-3;
         params.lfm_start = 1.40e-3;
         params.lfm_duration = 1.60e-3;
         params.gp_early_center_s = 0.44e-3;
         params.echo_delay_s = 0.30e-3;
         params.csd_nperseg = 1024;
         params.csd_noverlap = 512;
-        params.cwt_width_max = 64;
+        params.cwt_width_min = 30;
+        params.cwt_width_max = 154;
         params.activity_min_duration_s = 0.40e-3;
     } else {
         throw std::invalid_argument("Unsupported data level: " + level);
@@ -244,7 +249,11 @@ void apply_data_level(const std::string& level) {
     set_param_repr("echo_delay_s", std::to_string(params.echo_delay_s));
     set_param_repr("csd_nperseg", std::to_string(params.csd_nperseg));
     set_param_repr("csd_noverlap", std::to_string(params.csd_noverlap));
+    set_param_repr("cwt_w", std::to_string(params.cwt_w));
+    set_param_repr("cwt_width_min", std::to_string(params.cwt_width_min));
     set_param_repr("cwt_width_max", std::to_string(params.cwt_width_max));
+    set_param_repr("kalman_process_var", std::to_string(params.kalman_process_var));
+    set_param_repr("activity_threshold_ratio", std::to_string(params.activity_threshold_ratio));
     set_param_repr("activity_min_duration_s", std::to_string(params.activity_min_duration_s));
 }
 
